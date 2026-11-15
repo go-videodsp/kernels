@@ -92,6 +92,49 @@ func TestWindowAgainstBigOracleRandom(t *testing.T) {
 	}
 }
 
+func checkMB(t *testing.T, n, off, stride int) {
+	t.Helper()
+	wf, wl, wok := oracle(n, off, stride, 0, 15, 0, 15)
+	_ = wf
+	wok = wok && stride >= 16
+	l, ok := MacroBlock(n, off, stride)
+	if ok != wok || (ok && int64(l) != wl) {
+		t.Fatalf("MacroBlock(n=%d off=%d stride=%d) = %d %v, oracle %d %v", n, off, stride, l, ok, wl, wok)
+	}
+}
+
+// MacroBlock must equal the exact definition: the rewrite to a division by a
+// constant is the part worth proving, at the tight boundary (stride = the largest
+// accepted, one more) and at the integer extremes.
+func TestMacroBlockAgainstBigOracle(t *testing.T) {
+	for _, n := range edges {
+		for _, off := range edges {
+			for _, stride := range edges {
+				checkMB(t, n, off, stride)
+			}
+		}
+	}
+	rng := rand.New(rand.NewSource(11))
+	for i := 0; i < 300000; i++ {
+		n := rng.Intn(5000)
+		off := rng.Intn(n+5) - 2
+		stride := rng.Intn(400) - 2
+		checkMB(t, n, off, stride)
+		if n > off+16 && off >= 0 { // the tight boundary: the largest stride that fits, and one more
+			s := (n - off - 16) / 15
+			checkMB(t, n, off, s)
+			checkMB(t, n, off, s+1)
+		}
+		checkMB(t, math.MaxInt-rng.Intn(5), rng.Intn(100), rng.Intn(1<<20)+16)
+	}
+}
+
+func FuzzMacroBlock(f *testing.F) {
+	f.Add(1000, 10, 40)
+	f.Add(math.MaxInt, 0, math.MaxInt/15)
+	f.Fuzz(func(t *testing.T, n, off, stride int) { checkMB(t, n, off, stride) })
+}
+
 func FuzzWindow(f *testing.F) {
 	f.Add(64, 0, 8, 0, 7, 0, 7)
 	f.Add(64, 0, math.MaxInt/2+1, 0, 3, 0, 7)

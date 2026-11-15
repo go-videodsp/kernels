@@ -1,0 +1,45 @@
+Whole-macroblock explicit weighting (WeightUniMB / WeightBiMB) against the per-block calls and
+against FFmpeg 6.1.1, AMD Ryzen 9 7950X (Zen 4), one core (taskset -c 9), 1-minute load 0.3 to 0.9.
+
+Why cycles: wall time on this host swung by 1.5x within minutes (another session's load on the
+neighbouring cores changes the clock: the same binary measured 11.8, 13.3 and 17.5 ns per macroblock
+in one hour). CPU cycles in user space (perf stat -e cycles:u) do not move with the clock. Per
+macroblock = (cycles at 800 iterations - cycles at 200 iterations) / 600 / 8160 macroblocks.
+
+Ours (BenchmarkWeightFrame/<case>, frame sweep of a 1920x1088 picture, cycles:u, 200x then 800x):
+uniMB 200x  133199008 629263898 
+uniMB 800x  458871159 2382437937 
+uniMB4x8x8 200x  264591736 1413273930 
+uniMB4x8x8 800x  994015673 5506837523 
+
+Same measurement before the partition checks moved to uniPartsBad and with the first entry (uni and per-block cases, bi and biMB):
+uni 200x 138927858
+uni 800x 487507939
+uniMB 200x 129380706
+uniMB 800x 446274241
+uni4x8x8blocks 200x 402350043
+uni4x8x8blocks 800x 1524047681
+uniMB4x8x8 200x 287201973
+uniMB4x8x8 800x 1077696744
+bi 200x 283613905
+bi 800x 1058021715
+biMB 200x 246313891
+biMB 800x 910355715
+
+Kernel alone (weightUni16 called directly, frame sweep): 77835858 / 275134869 cycles at 200x / 800x = 40.3 cycles per macroblock, 179 instructions (includes the benchmark closure); empty sweep 1.4 cycles.
+
+FFmpeg 6.1.1 (cycles:u of ffmpeg -threads 1 -i caseNN-F.264 -f null -, streams of docs/bench/ffmpeg-stages; case00 = integer vector, case19 = explicit luma weights; per macroblock = (cycles at 300 pictures - at 100) / 200 / 8160):
+case00 100 432427262
+case00 100 434674513
+case00 100 434287131
+case00 300 1057156501
+case00 300 1065455838
+case00 300 1054856870
+case19 100 486994911
+case19 100 485201694
+case19 100 482292884
+case19 300 1187660933
+case19 300 1194320608
+case19 300 1187656953
+
+Derived (cycles per macroblock): FFmpeg case00 382.8, case19 430.4: explicit uni weighting costs 47.6. Ours: kernel alone 40.3; WeightUni (per block, v0.3.1) 73.6; WeightUniMB 66.5; four 8x8 partitions 229.8 per-block, 149.0 with WeightUniMB (final code, first block above); bi 159 per block, 139.7 WeightBiMB.

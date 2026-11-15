@@ -12,6 +12,20 @@ package bounds
 
 import "math/bits"
 
+// MacroBlock reports whether the 16x16 block at off, rows stride apart, lies in
+// [0, n) with its rows disjoint (stride >= 16), and returns the index of its
+// last sample. It is Window(n, off, stride, 0, 15, 0, 15) && stride >= 16 as one
+// small inlinable expression with NO product of the caller's values: the
+// condition off + 15*stride + 15 < n is rewritten as stride <= (n-off-16)/15,
+// exact for integers when n-off-16 >= 0, and the division is by a constant. Only
+// after it holds is 15*stride computed, and then it is below n.
+func MacroBlock(n, off, stride int) (last int, ok bool) {
+	if off < 0 || off >= n || stride < 16 || n-off < 16 || stride > (n-off-16)/15 {
+		return 0, false
+	}
+	return off + 15*stride + 15, true
+}
+
 // Window reports whether every index
 //
 //	off - rowsBefore*stride - colsBefore  ..  off + rowsAfter*stride + colsAfter

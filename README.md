@@ -222,6 +222,23 @@ defect. The kernel alone is 7.5 ns; the other 4 ns is the public call (bounds
 proof, argument checks, dispatch). An AVX-512 form (`VPMOVUSWB` saves the pack
 and the lane fix-up) was not attempted.
 
+**Whole-macroblock weighting (`mc.WeightUniMB`, `mc.WeightBiMB`).** One
+`bounds.MacroBlock` proof for the 16x16 macroblock (no product of caller values:
+the stride is compared as `stride <= (len-off-16)/15`), one check of every
+partition against the macroblock (supported size, inside, no overlap, weights in
+range), then the kernels run on the partitions with no further check and, on
+amd64, no per-partition dispatch. Measured in CPU cycles per macroblock, because
+wall time on the shared host moved by a factor of 1.5 within the hour (raw output
+in [mc-weight-mb-zen4-cycles.txt](docs/bench/mc-weight-mb-zen4-cycles.txt)), a
+1920x1088 frame sweep, uni 16x16: kernel alone 40, `WeightUni` 74, `WeightUniMB`
+66; four 8x8 partitions 230 per block against 149 with `WeightUniMB`; bi 159
+against 140. FFmpeg 6.1.1, same host, cycles of its decoder on the single-vector
+streams: 47.6 cycles per macroblock for explicit uni weighting, so **FFmpeg is
+still about 30 % ahead on a single 16x16 partition**: the Go call (nine
+arguments spilled, the proofs, the indirect call, the assembly stub) costs
+about 25 cycles around a 40-cycle kernel. Open: a partition loop inside the
+assembly, or a kernel with fewer instructions per row.
+
 Luma deblocking, ns per 16-line edge, flat plane (every line runs the whole
 formula), load 30:
 

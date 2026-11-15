@@ -71,6 +71,48 @@ func BenchmarkWeightFrame(b *testing.B) {
 		}
 		b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*frameWMB*frameHMB), "ns/MB")
 	})
+	// The same macroblocks through the whole-macroblock entries: one proof per
+	// macroblock (a single 16x16 partition, the FFmpeg case), and the four-8x8
+	// layout that the per-block calls pay four proofs for.
+	uniMB := []UniPart{{0, 0, 16, 16, 40, 3}}
+	uni4 := []UniPart{{0, 0, 8, 8, 40, 3}, {8, 0, 8, 8, 40, 3}, {0, 8, 8, 8, 40, 3}, {8, 8, 8, 8, 40, 3}}
+	for name, parts := range map[string][]UniPart{"uniMB": uniMB, "uniMB4x8x8": uni4} {
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				for my := 0; my < frameHMB; my++ {
+					for mx := 0; mx < frameWMB; mx++ {
+						WeightUniMB(dst, my*16*frameStride+mx*16, frameStride, parts, 5)
+					}
+				}
+			}
+			b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*frameWMB*frameHMB), "ns/MB")
+		})
+	}
+	b.Run("uni4x8x8blocks", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for my := 0; my < frameHMB; my++ {
+				for mx := 0; mx < frameWMB; mx++ {
+					o := my*16*frameStride + mx*16
+					for _, p := range uni4 {
+						WeightUni(dst, o+p.Y*frameStride+p.X, frameStride, p.W, p.H, p.Weight, p.Offset, 5)
+					}
+				}
+			}
+		}
+		b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*frameWMB*frameHMB), "ns/MB")
+	})
+	biMB := []BiPart{{0, 0, 16, 16, 24, 40, 1, 2}}
+	b.Run("biMB", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for my := 0; my < frameHMB; my++ {
+				for mx := 0; mx < frameWMB; mx++ {
+					o := my*16*frameStride + mx*16
+					WeightBiMB(dst, o, frameStride, src, o, frameStride, biMB, 5)
+				}
+			}
+		}
+		b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*frameWMB*frameHMB), "ns/MB")
+	})
 	b.Run("bi", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for my := 0; my < frameHMB; my++ {

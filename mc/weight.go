@@ -59,6 +59,12 @@ func WeightBi(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, 
 	if overlaps(dst, dstOff, dLast, src, srcOff, sLast) {
 		panic("mc: destination and source blocks share memory")
 	}
+	weightBiApply(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, w0, w1, o0, o1, logWD)
+}
+
+// weightBiApply runs the kernel on a block whose extents, weights and
+// non-overlap are already proved (by WeightBi or by WeightBiMB).
+func weightBiApply(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, w0, w1, o0, o1, logWD int) {
 	if w0 == 1<<logWD && w1 == w0 && (o0+o1+1)>>1 == 0 {
 		lumaDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 0, 0, true)
 		return
