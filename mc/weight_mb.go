@@ -40,10 +40,15 @@ func WeightUniMB(dst []byte, off, stride int, parts []UniPart, logWD int) {
 	if _, ok := bounds.MacroBlock(len(dst), off, stride); !ok || uint(logWD) > 7 || len(parts) > 16 {
 		refuseMB("destination", len(dst), off, stride, logWD, len(parts))
 	}
-	if i := uniPartsBad(parts, logWD); i >= 0 {
-		refusePart(i, parts[i].X, parts[i].Y, parts[i].W, parts[i].H)
+	// One snapshot of the partitions serves the check and the kernels: a caller
+	// (another goroutine) that changes parts after the check cannot make the
+	// kernels see a partition that was not proved.
+	var local [16]UniPart
+	n := copy(local[:], parts)
+	if i := uniPartsBad(local[:n], logWD); i >= 0 {
+		refusePart(i, local[i].X, local[i].Y, local[i].W, local[i].H)
 	}
-	weightUniParts(dst, off, stride, parts, logWD)
+	weightUniParts(dst, off, stride, local[:n], logWD)
 }
 
 // uniPartsBad returns the index of the first partition that is unsupported,
@@ -121,10 +126,12 @@ func WeightBiMB(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride
 	if overlaps(dst, dstOff, dLast, src, srcOff, sLast) {
 		panic("mc: destination and source macroblocks share memory")
 	}
-	if i := biPartsBad(parts, logWD); i >= 0 {
-		refusePart(i, parts[i].X, parts[i].Y, parts[i].W, parts[i].H)
+	var local [16]BiPart // one snapshot for the check and the kernels, as in WeightUniMB
+	n := copy(local[:], parts)
+	if i := biPartsBad(local[:n], logWD); i >= 0 {
+		refusePart(i, local[i].X, local[i].Y, local[i].W, local[i].H)
 	}
-	weightBiParts(dst, dstOff, dstStride, src, srcOff, srcStride, parts, logWD)
+	weightBiParts(dst, dstOff, dstStride, src, srcOff, srcStride, local[:n], logWD)
 }
 
 // weightOK is the accepting condition of checkWeights as one inlinable
