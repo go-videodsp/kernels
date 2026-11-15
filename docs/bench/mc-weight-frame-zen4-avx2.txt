@@ -1,0 +1,13 @@
+ 15:52:08 up 64 days,  1:47,  5 users,  load average: 0,72, 1,57, 1,57
+goos: linux
+goarch: amd64
+pkg: github.com/go-videodsp/kernels/mc
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkWeightFrame/uni         	     300	     96307 ns/op	        11.80 ns/MB
+BenchmarkWeightFrame/uni         	     300	     96117 ns/op	        11.78 ns/MB
+BenchmarkWeightFrame/uni         	     300	     96417 ns/op	        11.82 ns/MB
+BenchmarkWeightFrame/bi          	     300	    207433 ns/op	        25.42 ns/MB
+BenchmarkWeightFrame/bi          	     300	    207255 ns/op	        25.40 ns/MB
+BenchmarkWeightFrame/bi          	     300	    207313 ns/op	        25.41 ns/MB
+PASS
+ 15:52:09 up 64 days,  1:47,  5 users,  load average: 0,72, 1,57, 1,57
