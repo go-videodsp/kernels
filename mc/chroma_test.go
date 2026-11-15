@@ -66,6 +66,24 @@ func TestPutChromaMatchesReference(t *testing.T) {
 	}
 }
 
+// putChromaPairRef is what the portable build runs: one plane or two.
+func TestPutChromaPairRef(t *testing.T) {
+	r := rand.New(rand.NewSource(19))
+	src0, src1 := chromaPlane(r, 100), chromaPlane(r, 100)
+	for _, planes := range []int{1, 2} {
+		d0, d1 := make([]byte, 64), make([]byte, 64)
+		w0, w1 := make([]byte, 64), make([]byte, 64)
+		putChromaPairRef(d0, d1, 0, 8, src0, src1, 0, 9, 4, 4, 3, 6, planes)
+		putChromaRef(w0, 0, 8, src0, 0, 9, 4, 4, 3, 6)
+		if planes == 2 {
+			putChromaRef(w1, 0, 8, src1, 0, 9, 4, 4, 3, 6)
+		}
+		if !bytes.Equal(d0, w0) || !bytes.Equal(d1, w1) {
+			t.Fatalf("planes %d: result differs", planes)
+		}
+	}
+}
+
 // The reference by hand: a fraction of zero copies, and the centre of four
 // samples is their mean.
 func TestChromaReferenceKnown(t *testing.T) {
