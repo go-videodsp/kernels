@@ -147,6 +147,30 @@ not measured).
 | 8x8 | 11.6 / 48 | 14.6 / 56 |
 | 4x4 | 10.4 / 12.5 | 11.1 / 15.2 |
 
+**amd64 AVX2 weighted prediction.** Uni is exact in sixteen-bit lanes
+(`p*w + rnd` stays within -32640..32704 and the offset keeps the shifted value
+in int16); bi interleaves `(p0, p1)`, multiplies by `(w0, w1)` with `PMADDWD`
+and folds the offset into the rounding constant. Two rows per iteration at
+widths 16 and 8, four at width 4. AMD Ryzen 9 7950X (Zen 4), one core, ns per
+block (AVX2 / portable Go), L1-resident, host load 0.7 to 2.7 (raw output in
+[mc-weight-zen4-avx2.txt](docs/bench/mc-weight-zen4-avx2.txt)):
+
+| Block | uni | bi |
+|---|---|---|
+| 16x16 | 11.4 / 205 | 21.4 / 275 |
+| 8x8 | 9.4 / 54 | 15.7 / 76 |
+| 4x4 | 7.6 / 16.6 | 13.0 / 23.2 |
+
+Frame sweep (16x16 over a 1920x1088 picture, ns per macroblock,
+[mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt)):
+uni **11.8**, bi 25.4. FFmpeg 6.1.1 spends 10.4 ns per macroblock on explicit
+luma weighting (synthetic stream, method in the bench PR's
+`docs/bench/ffmpeg-stages`; its figure includes its own per-macroblock
+overhead): **we are about 13 % slower than FFmpeg on uni 16x16**, an open
+defect. The kernel alone is 7.5 ns; the other 4 ns is the public call (bounds
+proof, argument checks, dispatch). An AVX-512 form (`VPMOVUSWB` saves the pack
+and the lane fix-up) was not attempted.
+
 Luma deblocking, ns per 16-line edge, flat plane (every line runs the whole
 formula), load 30:
 

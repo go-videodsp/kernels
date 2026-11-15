@@ -1,0 +1,34 @@
+ 15:28:50 up 64 days,  1:24,  5 users,  load average: 0,22, 1,13, 0,97
+goos: linux
+goarch: amd64
+pkg: github.com/go-videodsp/kernels/mc
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkWeight/dispatch/uni/16x16         	   50000	        11.41 ns/op	22445.55 MB/s
+BenchmarkWeight/dispatch/bi/16x16          	   50000	        21.41 ns/op	11955.05 MB/s
+BenchmarkWeight/dispatch/uni/16x8          	   50000	         9.523 ns/op	13440.49 MB/s
+BenchmarkWeight/dispatch/bi/16x8           	   50000	        16.51 ns/op	7755.07 MB/s
+BenchmarkWeight/dispatch/uni/8x16          	   50000	        10.97 ns/op	11672.51 MB/s
+BenchmarkWeight/dispatch/bi/8x16           	   50000	        18.34 ns/op	6980.96 MB/s
+BenchmarkWeight/dispatch/uni/8x8           	   50000	         9.394 ns/op	6812.70 MB/s
+BenchmarkWeight/dispatch/bi/8x8            	   50000	        15.71 ns/op	4073.10 MB/s
+BenchmarkWeight/dispatch/uni/8x4           	   50000	         8.667 ns/op	3691.98 MB/s
+BenchmarkWeight/dispatch/bi/8x4            	   50000	        14.34 ns/op	2231.82 MB/s
+BenchmarkWeight/dispatch/uni/4x8           	   50000	         8.408 ns/op	3806.01 MB/s
+BenchmarkWeight/dispatch/bi/4x8            	   50000	        14.16 ns/op	2260.57 MB/s
+BenchmarkWeight/dispatch/uni/4x4           	   50000	         7.552 ns/op	2118.77 MB/s
+BenchmarkWeight/dispatch/bi/4x4            	   50000	        13.02 ns/op	1229.29 MB/s
+BenchmarkWeight/portable/uni/16x16         	   50000	       205.4 ns/op	1246.53 MB/s
+BenchmarkWeight/portable/bi/16x16          	   50000	       275.0 ns/op	 930.82 MB/s
+BenchmarkWeight/portable/uni/16x8          	   50000	       114.6 ns/op	1117.02 MB/s
+BenchmarkWeight/portable/bi/16x8           	   50000	       135.9 ns/op	 941.57 MB/s
+BenchmarkWeight/portable/uni/8x16          	   50000	       109.9 ns/op	1164.53 MB/s
+BenchmarkWeight/portable/bi/8x16           	   50000	       147.9 ns/op	 865.49 MB/s
+BenchmarkWeight/portable/uni/8x8           	   50000	        53.96 ns/op	1185.96 MB/s
+BenchmarkWeight/portable/bi/8x8            	   50000	        76.40 ns/op	 837.69 MB/s
+BenchmarkWeight/portable/uni/8x4           	   50000	        28.36 ns/op	1128.38 MB/s
+BenchmarkWeight/portable/bi/8x4            	   50000	        39.00 ns/op	 820.52 MB/s
+BenchmarkWeight/portable/uni/4x8           	   50000	        31.30 ns/op	1022.30 MB/s
+BenchmarkWeight/portable/bi/4x8            	   50000	        44.52 ns/op	 718.76 MB/s
+BenchmarkWeight/portable/uni/4x4           	   50000	        16.62 ns/op	 962.66 MB/s
+BenchmarkWeight/portable/bi/4x4            	   50000	        23.22 ns/op	 689.21 MB/s
+PASS
