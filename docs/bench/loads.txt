@@ -1,0 +1,10 @@
+1-minute load averages printed by `uptime` just before each committed raw run, as
+observed in the session that took it (the runs predate this file; the figures
+are the ones that session recorded, not a re-measurement). Apple M4 Max, a
+shared machine.
+
+mc-luma-m4max-indicative.txt      67.01   (13:51)
+mc-weight-m4max-indicative.txt    26.20   (14:29)
+lf-deblock-m4max-indicative.txt   32.67   (14:51; 29.66 before the first, discarded run)
+lf-chroma-m4max-indicative.txt    39.06   (15:09)
+lf-chroma-pair: see lf-chroma-pair-load.txt (before and after the run)

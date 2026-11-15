@@ -1,0 +1,12 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/go-videodsp/kernels/lf
+cpu: Apple M4 Max
+BenchmarkChromaPair/pair/strongV-16         	  300000	        21.24 ns/op	 753.19 MB/s
+BenchmarkChromaPair/pair/strongV-16         	  300000	        23.07 ns/op	 693.50 MB/s
+BenchmarkChromaPair/pair/strongV-16         	  300000	        22.74 ns/op	 703.46 MB/s
+BenchmarkChromaPair/twice/strongV-16        	  300000	        36.15 ns/op	 442.61 MB/s
+BenchmarkChromaPair/twice/strongV-16        	  300000	        41.87 ns/op	 382.12 MB/s
+BenchmarkChromaPair/twice/strongV-16        	  300000	        37.16 ns/op	 430.59 MB/s
+PASS
+ok  	github.com/go-videodsp/kernels/lf	24.352s

@@ -20,6 +20,7 @@ profile that sets the priorities, is in
 | Explicit weighted prediction | `mc.WeightUni`, `mc.WeightBi` | 8.4.2.3.2 |
 | Luma deblocking, 16 lines per call | `lf.DeblockLumaV/H` (bS 1..3), `lf.DeblockLumaIntraV/H` (bS 4) | 8.7.2.2 to 8.7.2.4 |
 | Chroma deblocking, 4:2:0, 8 lines per call | `lf.DeblockChromaV/H`, `lf.DeblockChromaIntraV/H` | 8.7.2.2 to 8.7.2.4 |
+| Chroma deblocking, Cb and Cr in one call, each plane with its own indexes | `lf.DeblockChromaPairV/H`, `lf.DeblockChromaPairIntraV/H` | 8.7.2.2 to 8.7.2.4 |
 | Threshold tables | `lf.Alpha`, `lf.Beta`, `lf.TC0` | Tables 8-16, 8-17 |
 
 Implementations: portable Go on every target (and with the `purego` build tag),
@@ -120,6 +121,28 @@ Chroma deblocking, ns per 8-line edge, flat plane, load 39:
 |---|---|---|
 | vertical | 17 / 24 | portable (a NEON kernel tied: 13.4 / 13.2) |
 | horizontal | 11 / 21 | 7.6 / 12 |
+
+Cb and Cr in one call (`lf.DeblockChromaPair*`, each plane with its own
+`indexA`, `indexB` and so its own thresholds and tC0, as
+`second_chroma_qp_index_offset` can differ from `chroma_qp_index_offset`; the
+two planes must not share memory). The eight lines of each plane sit side by
+side in one 16-lane register, and a vertical edge packs row r of both planes
+into one 8-byte row, so one 8x8 transpose yields all eight columns. Only the
+strong vertical edge has such a kernel; the other three edge kinds run as two
+one-plane calls inside the same API (see below). For the strong vertical edge,
+ns for both planes, three runs of one call against two one-plane calls (which
+run the Go code, the one-plane NEON kernel having tied it), from
+`docs/bench/lf-chroma-pair-m4max-indicative.txt`; load 55 to 57 by `uptime`
+around the run (`docs/bench/lf-chroma-pair-load.txt`), indicative:
+
+| Edge | one call | two calls |
+|---|---|---|
+| strong vertical | 21.2, 22.7, 23.1 | 36.2, 37.2, 41.9 |
+
+Three other two-plane kernels (normal vertical, normal horizontal, strong
+horizontal) were written, measured against two one-plane calls and not kept:
+a tie, a gain inside the run-to-run noise, and a loss. Those runs are not
+committed, so no number for them is claimed.
 
 Small blocks gain little (4x4 weighting, chroma edges): the call, the bounds
 proof and the constant setup cost about as much as the arithmetic. Batching
