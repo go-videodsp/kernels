@@ -1,6 +1,7 @@
 package mc
 
 import (
+	"math"
 	"math/rand"
 	"testing"
 )
@@ -29,7 +30,7 @@ func TestFastGateEqualsChecks(t *testing.T) {
 			off = n - ((h-1)*stride + w) + rng.Intn(3) - 1
 		}
 		if rng.Intn(50) == 0 {
-			stride = 1<<62 + rng.Intn(3) // would overflow a plain int product
+			stride = math.MaxInt - rng.Intn(3) // would overflow a plain int product
 		}
 		logWD := rng.Intn(11) - 2
 		weight := []int{-129, -128, 0, 127, 128, 129, rng.Intn(300) - 150}[rng.Intn(7)]
