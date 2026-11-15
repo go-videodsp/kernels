@@ -1,0 +1,53 @@
+name: fuzz
+# Nightly time-boxed randomised fuzzing on the two architectures with assembly.
+# Not a pull-request gate (wall-clock bound); the deterministic seed-corpus run
+# is in ci.yml and blocks. Any non-zero exit here is RED, never tolerated: a
+# crasher is printed in the log and uploaded; commit it under testdata/fuzz to
+# make it a permanent ci.yml case.
+#
+# Every Fuzz target of every package is found by `go test -list`, so a new
+# kernel's target needs no edit here.
+on:
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,    arch: amd64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # A target that exits non-zero turns the run red. Every target still
+      # runs, so one crash does not hide another.
+      - name: fuzz every target for 2 minutes
+        run: |
+          failed=""
+          for pkg in $(go list ./...); do
+            for t in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
+              echo "== $pkg $t"
+              go test -run '^$' -fuzz "^${t}\$" -fuzztime 2m "$pkg" || failed="$failed $pkg.$t"
+            done
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::fuzz targets that exited non-zero:$failed"
+            exit 1
+          fi
+      - name: upload any fuzz-discovered corpus
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-findings-${{ matrix.arch }}
+          path: '**/testdata/fuzz/'
+          if-no-files-found: ignore
