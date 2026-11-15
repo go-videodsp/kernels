@@ -39,7 +39,7 @@ less; where a file shows more, the table says so.
 | Family | AVX2 vs portable Go (ns) | AVX2 vs FFmpeg 6.1.1 | Raw files (load) |
 |---|---|---|---|
 | Luma quarter-sample, 16x16 put, G / b / j / e | 17 / 32 / 58 / 54 vs 796 / 1105 / 1896 / 1892 | 1.3 to 2.3 times faster per macroblock (frame sweep vs FFmpeg decoder time), 16 positions | [mc-luma-zen4-avx2.txt](docs/bench/mc-luma-zen4-avx2.txt) (0.76), [mc-luma-frame-zen4-avx2.txt](docs/bench/mc-luma-frame-zen4-avx2.txt) (0.67 to 0.72) |
-| Weighted prediction, 16x16 uni / bi | 11.4 / 21.4 vs 205 / 275 | uni: **about 13 % slower** (11.8 vs 10.4 ns per macroblock), open defect | [mc-weight-zen4-avx2.txt](docs/bench/mc-weight-zen4-avx2.txt) (0.22), [mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt) (0.72) |
+| Weighted prediction, 16x16 uni / bi | 11.4 / 21.4 vs 205 / 275 | uni: **about 13 % slower** at this tag (11.8 vs 10.4 ns per macroblock); the call-overhead fix in go-videodsp/kernels#15 measures 9.5 ns | [mc-weight-zen4-avx2.txt](docs/bench/mc-weight-zen4-avx2.txt) (0.22), [mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt) (0.72) |
 | Luma deblocking, edge, V / H normal | 18 / 13 vs 88 / 87 | see below | [lf-zen4-avx2.txt](docs/bench/lf-zen4-avx2.txt) (**3.50** and **1.73**: above the rule, indicative) |
 | Chroma deblocking, edge, V / H normal | 12 / 12 vs 24 / 24 | see below | same file |
 | Luma + chroma, all edges of a macroblock | 206 ns per macroblock | 1.4 times faster, indicative | [lf-frame-zen4-avx2.txt](docs/bench/lf-frame-zen4-avx2.txt) (0.72), [ffmpeg-stages-zen4.txt](docs/bench/ffmpeg-stages-zen4.txt) |
