@@ -1,0 +1,133 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Every file must be gofmt-clean.
+  gofmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::these files are not gofmt-clean:"; echo "$unformatted"
+            exit 1
+          fi
+
+  # vet on the host and on 386: a 32-bit target catches int overflow and
+  # struct-size assumptions that the 64-bit lanes cannot.
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: GOOS=linux GOARCH=386 go vet ./...
+      - run: GOOS=linux GOARCH=arm64 go vet ./...
+
+  # Build, race-test, seed-corpus fuzz and the coverage gate on three OSes.
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go build ./...
+      - run: go test -race ./...
+      # Fuzz targets over their committed seed corpus: deterministic, no time box.
+      - run: go test -run '^Fuzz' ./...
+      - name: coverage gate (100% of the statements that exist)
+        shell: bash
+        run: |
+          go test -covermode=atomic -coverpkg=./... -coverprofile=cov.out ./...
+          # A scaffold has no test files, so no profile is written; the gate
+          # bites from the first statement that has one.
+          if [ ! -s cov.out ] || [ "$(wc -l < cov.out)" -le 1 ]; then
+            echo "no statements yet"; exit 0
+          fi
+          pct=$(go tool cover -func=cov.out | awk '/^total:/{print $3}')
+          echo "coverage=$pct"
+          [ "$pct" = "100.0%" ] || { echo "::error::coverage $pct < 100%"; exit 1; }
+
+  # The two architectures with assembly run natively.
+  arch-native:
+    name: arch ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,    label: amd64 }
+          - { os: ubuntu-24.04-arm, label: arm64 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go env GOARCH && go test -count=1 ./...
+
+  # The other 64-bit targets run the portable reference under qemu-user
+  # (s390x is the big-endian check). The emulator lookup follows
+  # go-videodsp/yuv: qemu-user-static is a virtual package on Ubuntu 26.04.
+  arch-qemu:
+    name: arch ${{ matrix.goarch }} (qemu)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goarch: riscv64, qemu: qemu-riscv64-static }
+          - { goarch: loong64, qemu: qemu-loongarch64-static }
+          - { goarch: ppc64le, qemu: qemu-ppc64le-static }
+          - { goarch: s390x,   qemu: qemu-s390x-static }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: install qemu user-mode emulators
+        timeout-minutes: 10
+        run: sudo apt-get update && sudo apt-get install -y qemu-user qemu-user-binfmt
+      - name: Test under qemu (${{ matrix.goarch }})
+        run: |
+          base="${{ matrix.qemu }}"
+          q=""
+          for cand in "$base" "${base%-static}"; do
+            command -v "$cand" >/dev/null 2>&1 && q="$cand" && break
+          done
+          # A missing emulator FAILS the lane: green must mean it ran.
+          if [ -z "$q" ]; then
+            echo "::error::no qemu user emulator for ${{ matrix.goarch }} (looked for $base and ${base%-static})"
+            exit 1
+          fi
+          echo "running ${{ matrix.goarch }} under $q"
+          GOARCH=${{ matrix.goarch }} go test -exec="$q" -count=1 ./...
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
