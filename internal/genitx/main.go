@@ -445,6 +445,8 @@ func files() map[string]string {
 	return map[string]string{
 		"itx/idct8_amd64.s": g.amd64(),
 		"itx/idct8_arm64.s": g.arm64(),
+		"itx/idct4_amd64.s": g.amd64x4(),
+		"itx/idct4_arm64.s": g.arm64x4(),
 	}
 }
 
