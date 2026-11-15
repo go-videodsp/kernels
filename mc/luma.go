@@ -3,6 +3,7 @@ package mc
 import "fmt"
 
 //go:generate go run ../internal/genmc ..
+//go:generate go run ../internal/genluma86 ..
 
 // PutLuma writes the w x h block of H.264 luma samples predicted at the
 // quarter-sample offset (xFrac, yFrac) (ITU-T H.264 (V16) (06/2026), clause
