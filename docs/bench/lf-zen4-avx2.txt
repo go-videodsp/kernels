@@ -1,0 +1,28 @@
+ 15:37:47 up 64 days,  1:33,  6 users,  load average: 3,50, 2,22, 1,36
+goos: linux
+goarch: amd64
+pkg: github.com/go-videodsp/kernels/lf
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkDeblock/dispatch/normalV         	  100000	        18.44 ns/op	 867.85 MB/s
+BenchmarkDeblock/dispatch/strongV         	  100000	        20.78 ns/op	 770.08 MB/s
+BenchmarkDeblock/dispatch/normalH         	  100000	        13.12 ns/op	1219.53 MB/s
+BenchmarkDeblock/dispatch/strongH         	  100000	         9.294 ns/op	1721.50 MB/s
+BenchmarkDeblock/portable/normalV         	  100000	        87.55 ns/op	 182.75 MB/s
+BenchmarkDeblock/portable/strongV         	  100000	        87.58 ns/op	 182.69 MB/s
+BenchmarkDeblock/portable/normalH         	  100000	        86.87 ns/op	 184.18 MB/s
+BenchmarkDeblock/portable/strongH         	  100000	        84.08 ns/op	 190.30 MB/s
+PASS
+ 15:44:24 up 64 days,  1:39,  5 users,  load average: 1,73, 1,99, 1,53
+goos: linux
+goarch: amd64
+pkg: github.com/go-videodsp/kernels/lf
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkChroma/dispatch/normalV         	  100000	        12.27 ns/op	 651.92 MB/s
+BenchmarkChroma/dispatch/strongV         	  100000	         8.356 ns/op	 957.39 MB/s
+BenchmarkChroma/dispatch/normalH         	  100000	        12.09 ns/op	 661.65 MB/s
+BenchmarkChroma/dispatch/strongH         	  100000	         6.664 ns/op	1200.43 MB/s
+BenchmarkChroma/portable/normalV         	  100000	        24.24 ns/op	 330.05 MB/s
+BenchmarkChroma/portable/strongV         	  100000	        18.22 ns/op	 439.05 MB/s
+BenchmarkChroma/portable/normalH         	  100000	        23.90 ns/op	 334.71 MB/s
+BenchmarkChroma/portable/strongH         	  100000	        17.80 ns/op	 449.37 MB/s
+PASS
