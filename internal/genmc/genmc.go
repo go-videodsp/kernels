@@ -372,6 +372,7 @@ func files() map[string]string {
 		"mc/luma_arm64_tab.go": tab,
 		"lf/deblock_arm64.s":   generateDeblock(),
 		"lf/chroma_arm64.s":    generateChroma(),
+		"lf/chroma16_arm64.s":  generateChroma16(),
 	}
 }
 
