@@ -163,36 +163,64 @@ the same shape; the true numbers come from the per-kernel benchmarks (§7).
 
 Total recovered ≈ 70 % of today's time.
 
-Arithmetic (equations of ITU-T H.264; see §8 for the reading status):
+Arithmetic, with clause and equation numbers of **ITU-T H.264 (V16)
+(06/2026)**, checked against that edition (see §8):
 
-- **Luma (8.4.2.2.1).** Six-tap `(1, −5, 20, 20, −5, 1)`. Half-sample
-  b, h: `Clip1((b1 + 16) >> 5)`. Centre j: `j1` from six intermediate b1 (or
-  h1) values with the same taps, `Clip1((j1 + 512) >> 10)`; intermediates are
-  not clipped. Quarter samples: `(x + y + 1) >> 1` of the two named neighbours
-  (full or half samples, already clipped). The fused kernel computes the two
-  terms in registers and averages them before the store.
-- **Chroma (8.4.2.2.2).** `((8−dx)(8−dy)A + dx(8−dy)B + (8−dx)dyC + dxdyD + 32) >> 6`,
-  dx, dy ∈ 0…7.
-- **Weighted prediction (8.4.2.3).** Default: `(p0 + p1 + 1) >> 1`. Uni:
-  `Clip1(((p·w + 2^(logWD−1)) >> logWD) + o)` (logWD ≥ 1, else `p·w + o`).
-  Bi: `Clip1(((p0·w0 + p1·w1 + 2^logWD) >> (logWD + 1)) + ((o0 + o1 + 1) >> 1))`.
-  Implicit weights are derived per reference pair from POC distances
-  (logWD = 5, offsets 0).
-- **Inverse transform (8.5.12, 8.5.13).** 4x4: rows then columns with the
-  butterfly `e = s0+s2, f = s0−s2, g = (s1>>1)−s3, h = s1+(s3>>1)`, outputs
-  `e+h, f+g, f−g, e−h`, final `(x + 32) >> 6`, then `Clip1(pred + r)`.
-  8x8: the eight-point butterfly with `>>1` and `>>2` terms of 8.5.13,
-  same final rounding. DC-only blocks: one value `(dc + 32) >> 6` added to all
-  samples (the dominant case in P/B residuals).
-- **Deblocking (8.7.2).** Per sample line across the edge, filter if
-  `|p0−q0| < α ∧ |p1−p0| < β ∧ |q1−q0| < β`. bS < 4: `Δ = Clip3(−tc, tc,
-  (((q0−p0)<<2) + (p1−q1) + 4) >> 3)`, tc = tc0 + (ap<β) + (aq<β) for luma,
-  tc0 + 1 for chroma; p1/q1 corrected with `(p2 + ((p0+q0+1)>>1) − (p1<<1)) >> 1`
-  clipped to ±tc0. bS = 4: the strong filter with the `α/4 + 2` test. Each
-  NEON call handles 16 lines (one MB edge), with `tc0` per 4 lines and an
-  all-lines-skip early exit.
-- **Intra (8.3).** Straightforward broadcast/sum shapes; plane mode needs
-  a 16-bit multiply-accumulate ramp.
+- **Luma, 8.4.2.2.1** (Figure 8-4, Table 8-11, Equations 8-239…8-261, Table
+  8-12). Six-tap `(1, −5, 20, 20, −5, 1)`. Half samples b, h:
+  `Clip1Y((b1 + 16) >> 5)` (8-243, 8-244). Centre j: `j1` from six unclipped
+  intermediates b1-type (or h1-type) values with the same taps (8-245, 8-246;
+  the two directions give an equal result), `Clip1Y((j1 + 512) >> 10)`
+  (8-247). Quarter samples a, c, d, n, f, i, k, q: `(x + y + 1) >> 1` of the
+  two nearest full/half samples, already clipped (8-250…8-257); e, g, p, r:
+  the same average of two diagonal half samples (8-258…8-261). Table 8-12
+  maps (xFrac, yFrac) to the position. Reference coordinates are clamped
+  into the picture (8-239, 8-240), which is what edge emulation reproduces.
+  The fused kernel computes the two terms in registers and averages them
+  before the store.
+- **Chroma, 8.4.2.2.2** (Equation 8-270, coordinates clamped by
+  8-262…8-269). `((8−dx)(8−dy)A + dx(8−dy)B + (8−dx)dyC + dxdyD + 32) >> 6`,
+  dx, dy ∈ 0…7 for 4:2:0 (8-229, 8-230).
+- **Weighted prediction, 8.4.2.3.** Default, 8.4.2.3.1: `(p0 + p1 + 1) >> 1`
+  (8-273). Explicit and implicit, 8.4.2.3.2: uni
+  `Clip1(((p·w + 2^(logWD−1)) >> logWD) + o)` if logWD ≥ 1, else
+  `Clip1(p·w + o)` (8-274, 8-275); bi
+  `Clip1(((p0·w0 + p1·w1 + 2^logWD) >> (logWD + 1)) + ((o0 + o1 + 1) >> 1))`
+  (8-276). Implicit weights, **8.4.3**: logWD = 5, offsets 0 (8-277…8-279),
+  w0 = w1 = 32 in the degenerate cases (8-280, 8-281), else
+  `w0 = 64 − (DistScaleFactor >> 2)`, `w1 = DistScaleFactor >> 2`
+  (8-282, 8-283). With w0 = w1 = 32, (8-276) reduces exactly to (8-273):
+  the shortcut of §3, item 3.
+- **Inverse transform, 8.5.12.2** (4x4, Equations 8-338…8-354) and
+  **8.5.13.2** (8x8, 8-358…8-404 and the final rounding after them).
+  4x4: rows then columns with `e0 = d0+d2, e1 = d0−d2, e2 = (d1>>1)−d3,
+  e3 = d1+(d3>>1)`, outputs `e0+e3, e1+e2, e1−e2, e0−e3`, final
+  `(h + 32) >> 6` (8-354); 8x8: the eight-point butterfly with `>>1` and
+  `>>2` terms. Scaling (dequantisation) is 8.5.12.1 and 8.5.13.1 (8-356,
+  8-357 for 8x8); the luma DC of Intra_16x16 is 8.5.10, chroma DC 8.5.11;
+  the add of prediction and residual is 8.5.14. **The standard bounds every
+  coefficient and every intermediate (d, e, f, g; h up to 2^(7+bitDepth) − 33)
+  to −2^(7+bitDepth) … 2^(7+bitDepth) − 1** (bitstream constraints in
+  8.5.12.1, 8.5.12.2, 8.5.13.1 and 8.5.13.2): at 8 bits that is exactly the int16 range, which is what
+  makes 16-bit lanes legal for 8-bit streams and requires 32-bit lanes above.
+- **Deblocking, 8.7.** bS derivation 8.7.2.1; thresholds 8.7.2.2
+  (8-453…8-460: qPav, indexA/indexB clipped to 0…51, α′/β′ from Table 8-16
+  scaled by bit depth, `filterSamplesFlag = bS ≠ 0 ∧ |p0−q0| < α ∧
+  |p1−p0| < β ∧ |q1−q0| < β`). bS < 4, **8.7.2.3**: tc0 from Table 8-17
+  (8-461, 8-462); `tc = tc0 + (ap<β) + (aq<β)` when chromaStyleFilteringFlag
+  is 0, else `tc0 + 1` (8-465, 8-466); `Δ = Clip3(−tc, tc,
+  (((q0−p0)<<2) + (p1−q1) + 4) >> 3)` (8-467…8-469); p1/q1 corrected by
+  `Clip3(−tc0, tc0, (p2 + ((p0+q0+1)>>1) − (p1<<1)) >> 1)` (8-470, 8-472).
+  bS = 4, **8.7.2.4**: the strong filter under `ap < β ∧ |p0−q0| < (α>>2) + 2`
+  (8-476). Each NEON call handles 16 lines (one MB edge), with `tc0` per 4
+  lines and an all-lines-skip early exit.
+- **Intra, 8.3** (8.3.1 Intra_4x4, 8.3.2 Intra_8x8, 8.3.3 Intra_16x16, 8.3.4
+  chroma). Broadcast and sum shapes; plane mode needs a 16-bit
+  multiply-accumulate ramp.
+- **CABAC, 9.3.** Arithmetic decoding 9.3.3.2; a decision 9.3.3.2.1
+  (`qCodIRangeIdx = (codIRange >> 6) & 3`, rangeTabLPS of Table 9-44,
+  9-25, 9-26), state transition 9.3.3.2.1.1 (9-27, Table 9-45),
+  renormalisation 9.3.3.2.2, bypass 9.3.3.2.3, terminate 9.3.3.2.4.
 
 Shapes confirmed in FFmpeg's aarch64 tree (names only): qpel is one entry
 point per (size, fractional position) for put and avg, so averaging is fused;
@@ -262,13 +290,14 @@ bound to trade. (FMA, reordering and approximate algorithms do not apply.)
 3. Coefficient storage moves from `int32` to `int16` for 8-bit streams.
 4. amd64: the asmgen ports replace avo's output; avo leaves the module.
 
-Reading status of the bibliography: the ITU-T H.264 (08/2024) PDF could not
-be downloaded from this session (the ITU server refused automated retrieval),
-so the clause numbers above are cited from the standard's known structure and
-**must be checked against the PDF before the first kernel lands** (the owner is
-supplying the PDF). The arithmetic
-itself was checked against the conformance-tested portable code of go-avkit/h264
-(`internal/simd/generic.go`, `internal/mc/mc.go`). dav1d's `mc`/`itx`
+Reading status of the bibliography: every clause and equation number in §5
+was checked on 2026-11-15 against **ITU-T H.264 (V16) (06/2026)**, the 16th
+edition, which supersedes the 08/2024 edition first named here (V15 was not
+opened, so no claim is made about its numbering). The arithmetic also agrees with
+the conformance-tested portable code of go-avkit/h264
+(`internal/simd/generic.go`, `internal/mc/mc.go`). The PDF is not part of
+this repository and no text of it is reproduced: only clause numbers,
+equation numbers and the equations' arithmetic. dav1d's `mc`/`itx`
 design was not opened in this session; it must be read before the AV1 half of
 `mc` (`prep` / `avg` / `w_avg` / `mask`) is specified.
 
