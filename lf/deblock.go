@@ -3,6 +3,7 @@ package lf
 import "fmt"
 
 //go:generate go run ../internal/genmc ..
+//go:generate go run ../internal/genlf86 ..
 
 // Alpha is the threshold α of clause 8.7.2.2 for 8-bit samples: α′ of
 // Table 8-16 at indexA (Equation 8-456 with BitDepth 8). indexA is
