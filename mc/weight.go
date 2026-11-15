@@ -1,6 +1,10 @@
 package mc
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-videodsp/kernels/internal/bounds"
+)
 
 //go:generate go run ../internal/genweight86 ..
 
@@ -75,8 +79,8 @@ func checkWeights(logWD, weight, offset int) {
 }
 
 // checkBlock proves that a w x h block at off with the stride fits in a
-// slice of n bytes, in int64 so that no 32-bit target can overflow.
-// It returns the index of the block's last sample.
+// slice of n bytes (internal/bounds.Window: no product can wrap on any
+// target). It returns the index of the block's last sample.
 func checkBlock(what string, n, off, stride, w, h int) int {
 	if !validSize(w, h) {
 		panic(fmt.Sprintf("mc: unsupported block size %dx%d", w, h))
@@ -84,11 +88,11 @@ func checkBlock(what string, n, off, stride, w, h int) int {
 	if stride < w {
 		panic(fmt.Sprintf("mc: %s stride %d is smaller than the block width %d", what, stride, w))
 	}
-	last := int64(off) + int64(h-1)*int64(stride) + int64(w-1)
-	if off < 0 || last >= int64(n) {
+	_, last, ok := bounds.Window(n, off, stride, 0, h-1, 0, w-1)
+	if !ok {
 		panic(fmt.Sprintf("mc: %s block does not fit: offset %d stride %d size %dx%d length %d", what, off, stride, w, h, n))
 	}
-	return int(last)
+	return last
 }
 
 // weightUniRef and weightBiRef are the portable forms, transcribed from the

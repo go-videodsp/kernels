@@ -1,6 +1,10 @@
 package mc
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-videodsp/kernels/internal/bounds"
+)
 
 //go:generate go run ../internal/genmc ..
 //go:generate go run ../internal/genluma86 ..
@@ -58,8 +62,8 @@ func validSize(w, h int) bool {
 }
 
 // checkLuma is the bounds proof: it runs once per call, in Go, before any
-// assembly. Arithmetic is in int64 so that no 32-bit target can overflow
-// (h and the margins are at most 19, a stride at most 2^31).
+// assembly. The footprint arithmetic is internal/bounds.Window, which cannot
+// wrap on any target (a stride of 1<<62 is refused, not multiplied).
 func checkLuma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
 	dstLen, srcLen := len(dst), len(src)
 	if !validSize(w, h) {
@@ -79,26 +83,25 @@ func checkLuma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride,
 	}
 
 	// Destination block: rows 0..h-1, columns 0..w-1.
-	dLast := int64(dstOff) + int64(h-1)*int64(dstStride) + int64(w-1)
-	if dstOff < 0 || dLast >= int64(dstLen) {
+	_, dLast, ok := bounds.Window(dstLen, dstOff, dstStride, 0, h-1, 0, w-1)
+	if !ok {
 		panic(fmt.Sprintf("mc: destination block does not fit: offset %d stride %d size %dx%d length %d", dstOff, dstStride, w, h, dstLen))
 	}
 
 	// Source footprint: margins -2/+3 in each interpolated direction.
-	before, after := int64(0), int64(0) // rows
+	before, after := 0, 0 // rows
 	if yFrac != 0 {
 		before, after = 2, 3
 	}
-	left, right := int64(0), int64(0) // columns
+	left, right := 0, 0 // columns
 	if xFrac != 0 {
 		left, right = 2, 3
 	}
-	first := int64(srcOff) - before*int64(srcStride) - left
-	last := int64(srcOff) + (int64(h-1)+after)*int64(srcStride) + int64(w-1) + right
-	if first < 0 || last >= int64(srcLen) {
+	first, last, ok := bounds.Window(srcLen, srcOff, srcStride, before, h-1+after, left, w-1+right)
+	if !ok {
 		panic(fmt.Sprintf("mc: source footprint does not fit: offset %d stride %d size %dx%d frac (%d, %d) length %d", srcOff, srcStride, w, h, xFrac, yFrac, len(src)))
 	}
-	if overlaps(dst, int(dstOff), int(dLast), src, int(first), int(last)) {
+	if overlaps(dst, dstOff, dLast, src, first, last) {
 		panic("mc: destination block and source footprint share memory")
 	}
 }
