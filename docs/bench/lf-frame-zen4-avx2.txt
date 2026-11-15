@@ -1,0 +1,64 @@
+ 15:52:09 up 64 days,  1:47,  5 users,  load average: 0,72, 1,57, 1,57
+goos: linux
+goarch: amd64
+pkg: github.com/go-videodsp/kernels/lf
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkChroma/dispatch/normalV         	     100	        13.83 ns/op	 578.45 MB/s
+BenchmarkChroma/dispatch/normalV         	     100	        25.25 ns/op	 316.83 MB/s
+BenchmarkChroma/dispatch/normalV         	     100	        12.82 ns/op	 624.02 MB/s
+BenchmarkChroma/dispatch/strongV         	     100	         8.810 ns/op	 908.06 MB/s
+BenchmarkChroma/dispatch/strongV         	     100	         8.620 ns/op	 928.07 MB/s
+BenchmarkChroma/dispatch/strongV         	     100	         8.610 ns/op	 929.15 MB/s
+BenchmarkChroma/dispatch/normalH         	     100	        11.92 ns/op	 671.14 MB/s
+BenchmarkChroma/dispatch/normalH         	     100	        11.82 ns/op	 676.82 MB/s
+BenchmarkChroma/dispatch/normalH         	     100	        11.52 ns/op	 694.44 MB/s
+BenchmarkChroma/dispatch/strongH         	     100	         6.610 ns/op	1210.29 MB/s
+BenchmarkChroma/dispatch/strongH         	     100	         6.610 ns/op	1210.29 MB/s
+BenchmarkChroma/dispatch/strongH         	     100	         6.510 ns/op	1228.88 MB/s
+BenchmarkChroma/portable/normalV         	     100	        24.25 ns/op	 329.90 MB/s
+BenchmarkChroma/portable/normalV         	     100	        24.24 ns/op	 330.03 MB/s
+BenchmarkChroma/portable/normalV         	     100	        24.14 ns/op	 331.40 MB/s
+BenchmarkChroma/portable/strongV         	     100	        19.04 ns/op	 420.17 MB/s
+BenchmarkChroma/portable/strongV         	     100	        18.84 ns/op	 424.63 MB/s
+BenchmarkChroma/portable/strongV         	     100	        18.84 ns/op	 424.63 MB/s
+BenchmarkChroma/portable/normalH         	     100	        24.74 ns/op	 323.36 MB/s
+BenchmarkChroma/portable/normalH         	     100	        24.45 ns/op	 327.20 MB/s
+BenchmarkChroma/portable/normalH         	     100	        24.55 ns/op	 325.87 MB/s
+BenchmarkChroma/portable/strongH         	     100	        18.74 ns/op	 426.89 MB/s
+BenchmarkChroma/portable/strongH         	     100	        22.34 ns/op	 358.10 MB/s
+BenchmarkChroma/portable/strongH         	     100	        19.04 ns/op	 420.17 MB/s
+BenchmarkDeblock/dispatch/normalV        	     100	        20.14 ns/op	 794.44 MB/s
+BenchmarkDeblock/dispatch/normalV        	     100	        20.14 ns/op	 794.44 MB/s
+BenchmarkDeblock/dispatch/normalV        	     100	        20.04 ns/op	 798.40 MB/s
+BenchmarkDeblock/dispatch/strongV        	     100	        20.64 ns/op	 775.19 MB/s
+BenchmarkDeblock/dispatch/strongV        	     100	        20.64 ns/op	 775.19 MB/s
+BenchmarkDeblock/dispatch/strongV        	     100	        20.54 ns/op	 778.97 MB/s
+BenchmarkDeblock/dispatch/normalH        	     100	        13.93 ns/op	1148.60 MB/s
+BenchmarkDeblock/dispatch/normalH        	     100	        13.82 ns/op	1157.74 MB/s
+BenchmarkDeblock/dispatch/normalH        	     100	        13.52 ns/op	1183.43 MB/s
+BenchmarkDeblock/dispatch/strongH        	     100	        10.32 ns/op	1550.39 MB/s
+BenchmarkDeblock/dispatch/strongH        	     100	        10.42 ns/op	1535.51 MB/s
+BenchmarkDeblock/dispatch/strongH        	     100	        10.02 ns/op	1596.81 MB/s
+BenchmarkDeblock/portable/normalV        	     100	        90.97 ns/op	 175.88 MB/s
+BenchmarkDeblock/portable/normalV        	     100	        90.37 ns/op	 177.05 MB/s
+BenchmarkDeblock/portable/normalV        	     100	        90.27 ns/op	 177.25 MB/s
+BenchmarkDeblock/portable/strongV        	     100	        90.37 ns/op	 177.05 MB/s
+BenchmarkDeblock/portable/strongV        	     100	        90.17 ns/op	 177.44 MB/s
+BenchmarkDeblock/portable/strongV        	     100	        89.97 ns/op	 177.84 MB/s
+BenchmarkDeblock/portable/normalH        	     100	        89.36 ns/op	 179.05 MB/s
+BenchmarkDeblock/portable/normalH        	     100	        88.86 ns/op	 180.06 MB/s
+BenchmarkDeblock/portable/normalH        	     100	        88.97 ns/op	 179.84 MB/s
+BenchmarkDeblock/portable/strongH        	     100	        86.46 ns/op	 185.06 MB/s
+BenchmarkDeblock/portable/strongH        	     100	       130.8 ns/op	 122.29 MB/s
+BenchmarkDeblock/portable/strongH        	     100	        85.46 ns/op	 187.22 MB/s
+BenchmarkDeblockFrame/luma               	     100	   1016860 ns/op	       127.5 ns/MB
+BenchmarkDeblockFrame/luma               	     100	   1016629 ns/op	       127.5 ns/MB
+BenchmarkDeblockFrame/luma               	     100	   1016809 ns/op	       127.5 ns/MB
+BenchmarkDeblockFrame/chroma             	     100	    650887 ns/op	        81.64 ns/MB
+BenchmarkDeblockFrame/chroma             	     100	    651105 ns/op	        81.66 ns/MB
+BenchmarkDeblockFrame/chroma             	     100	    651337 ns/op	        81.69 ns/MB
+BenchmarkDeblockFrame/luma+chroma        	     100	   1643448 ns/op	       206.1 ns/MB
+BenchmarkDeblockFrame/luma+chroma        	     100	   1645714 ns/op	       206.4 ns/MB
+BenchmarkDeblockFrame/luma+chroma        	     100	   1643415 ns/op	       206.1 ns/MB
+PASS
+ 15:52:10 up 64 days,  1:47,  5 users,  load average: 0,72, 1,57, 1,57
