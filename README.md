@@ -87,13 +87,16 @@ re-measure on a quiet machine; raw output is in [docs/bench](docs/bench). No
 comparison with FFmpeg is published yet: a checkasm binary is not available
 here, and the comparison is planned on a quiet amd64 host.
 
-`mc.PutLuma`, ns per block (NEON / portable), load 66:
+`mc.PutLuma`, ns per block (NEON / portable), from
+`docs/bench/mc-luma-m4max-indicative.txt` (one run, 30000 iterations; the
+1-min load was 67 by `uptime` just before it; a 4x4 copy at 20.7 ns is
+evidently noise):
 
 | Block | G (copy) | b (half, H) | j (centre) | e (diagonal) |
 |---|---|---|---|---|
-| 16x16 | 15 / 643 | 26 / 788 | 76 / 1317 | 52 / 1719 |
-| 8x8 | 8.6 / 177 | 12 / 213 | 21 / 356 | 17 / 342 |
-| 4x4 | 7.1 / 57 | 9.4 / 66 | 18 / 134 | 12 / 141 |
+| 16x16 | 27 / 865 | 50 / 1099 | 83 / 1619 | 61 / 1976 |
+| 8x8 | 8.5 / 224 | 13.8 / 287 | 35 / 489 | 17.8 / 460 |
+| 4x4 | 20.7 / 59 | 9.5 / 90 | 18.3 / 117 | 11.6 / 175 |
 
 `mc.WeightUni` / `mc.WeightBi`, ns per block, load 26:
 
