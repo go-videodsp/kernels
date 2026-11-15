@@ -10,5 +10,9 @@
 // every other target, and with the purego tag, they run the portable
 // reference. Both are bit-exact with the standard.
 //
+// Also implemented: WeightUni and WeightBi, explicit weighted prediction
+// (clause 8.4.2.3.2, Equations 8-274 to 8-276); WeightBi with equal weights
+// 2^logWD is the default average and runs the fused AvgLuma kernel.
+//
 // See docs/design/design.md.
 package mc
