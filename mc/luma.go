@@ -23,8 +23,15 @@ import "fmt"
 // the source stride is not positive, the destination stride is smaller than
 // w (rows would overlap), or the footprint or the destination block does not
 // fit its slice.
+//
+// dst and src must not share memory: PutLuma panics when the bytes of the
+// destination block (first to last sample, rows included) intersect the bytes
+// of the source footprint, which it can tell from the addresses. Two slices of
+// one array are fine while those byte ranges are disjoint. The check is on
+// the bounding ranges, so a destination placed between the rows of the source
+// footprint is refused even if no sample is shared.
 func PutLuma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
-	checkLuma(len(dst), dstOff, dstStride, len(src), srcOff, srcStride, w, h, xFrac, yFrac)
+	checkLuma(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, xFrac, yFrac)
 	lumaDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, xFrac, yFrac, false)
 }
 
@@ -33,7 +40,7 @@ func PutLuma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w
 // already in dst, dst = (dst + p + 1) >> 1 (Equation 8-273), the second
 // prediction of a bi-predicted block. The preconditions are PutLuma's.
 func AvgLuma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
-	checkLuma(len(dst), dstOff, dstStride, len(src), srcOff, srcStride, w, h, xFrac, yFrac)
+	checkLuma(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, xFrac, yFrac)
 	lumaDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, xFrac, yFrac, true)
 }
 
@@ -52,7 +59,8 @@ func validSize(w, h int) bool {
 // checkLuma is the bounds proof: it runs once per call, in Go, before any
 // assembly. Arithmetic is in int64 so that no 32-bit target can overflow
 // (h and the margins are at most 19, a stride at most 2^31).
-func checkLuma(dstLen, dstOff, dstStride, srcLen, srcOff, srcStride, w, h, xFrac, yFrac int) {
+func checkLuma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
+	dstLen, srcLen := len(dst), len(src)
 	if !validSize(w, h) {
 		panic(fmt.Sprintf("mc: unsupported luma block size %dx%d", w, h))
 	}
@@ -87,6 +95,9 @@ func checkLuma(dstLen, dstOff, dstStride, srcLen, srcOff, srcStride, w, h, xFrac
 	first := int64(srcOff) - before*int64(srcStride) - left
 	last := int64(srcOff) + (int64(h-1)+after)*int64(srcStride) + int64(w-1) + right
 	if first < 0 || last >= int64(srcLen) {
-		panic(fmt.Sprintf("mc: source footprint does not fit: offset %d stride %d size %dx%d frac (%d, %d) length %d", srcOff, srcStride, w, h, xFrac, yFrac, srcLen))
+		panic(fmt.Sprintf("mc: source footprint does not fit: offset %d stride %d size %dx%d frac (%d, %d) length %d", srcOff, srcStride, w, h, xFrac, yFrac, len(src)))
+	}
+	if overlaps(dst, int(dstOff), int(dLast), src, int(first), int(last)) {
+		panic("mc: destination block and source footprint share memory")
 	}
 }

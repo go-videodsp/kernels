@@ -14,7 +14,8 @@ import "fmt"
 // logWD is 0..7 (luma_log2_weight_denom), weight -128..128 (a weight flag
 // that is 0 infers 2^logWD, which is 128 at most) and offset -128..127.
 //
-// The supported sizes are PutLuma's. WeightUni panics before touching dst
+// There is a single buffer, so there is no source to overlap. The supported
+// sizes are PutLuma's. WeightUni panics before touching dst
 // when the size, a parameter or the block's extent is not supported, or
 // stride < w (rows would overlap).
 func WeightUni(dst []byte, off, stride, w, h, weight, offset, logWD int) {
@@ -37,11 +38,21 @@ func WeightUni(dst []byte, off, stride, w, h, weight, offset, logWD int) {
 // holds for any w0 = w1 = 2^logWD with (o0 + o1 + 1) >> 1 == 0). Ranges and
 // panics are WeightUni's, for both weights and both offsets; the constraint
 // of Equation 8-298 on w0 + w1 is the bitstream's and is not checked.
+//
+// dst and src must not share memory: WeightBi panics when the byte range of
+// the destination block (first to last sample) intersects the source block's,
+// which it can tell from the addresses; two slices of one array are fine
+// while the ranges are disjoint. The check is on the bounding ranges, so
+// blocks whose rows interleave in one plane are refused even if no sample is
+// shared.
 func WeightBi(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, w0, w1, o0, o1, logWD int) {
-	checkBlock("destination", len(dst), dstOff, dstStride, w, h)
-	checkBlock("source", len(src), srcOff, srcStride, w, h)
+	dLast := checkBlock("destination", len(dst), dstOff, dstStride, w, h)
+	sLast := checkBlock("source", len(src), srcOff, srcStride, w, h)
 	checkWeights(logWD, w0, o0)
 	checkWeights(logWD, w1, o1)
+	if overlaps(dst, dstOff, dLast, src, srcOff, sLast) {
+		panic("mc: destination and source blocks share memory")
+	}
 	if w0 == 1<<logWD && w1 == w0 && (o0+o1+1)>>1 == 0 {
 		lumaDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 0, 0, true)
 		return
@@ -63,7 +74,8 @@ func checkWeights(logWD, weight, offset int) {
 
 // checkBlock proves that a w x h block at off with the stride fits in a
 // slice of n bytes, in int64 so that no 32-bit target can overflow.
-func checkBlock(what string, n, off, stride, w, h int) {
+// It returns the index of the block's last sample.
+func checkBlock(what string, n, off, stride, w, h int) int {
 	if !validSize(w, h) {
 		panic(fmt.Sprintf("mc: unsupported block size %dx%d", w, h))
 	}
@@ -74,6 +86,7 @@ func checkBlock(what string, n, off, stride, w, h int) {
 	if off < 0 || last >= int64(n) {
 		panic(fmt.Sprintf("mc: %s block does not fit: offset %d stride %d size %dx%d length %d", what, off, stride, w, h, n))
 	}
+	return int(last)
 }
 
 // weightUniRef and weightBiRef are the portable forms, transcribed from the

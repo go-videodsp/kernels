@@ -21,12 +21,12 @@ func guarded(t *testing.T, n int, atEnd bool) []byte {
 	body := (n + pg - 1) / pg * pg
 	m, err := syscall.Mmap(-1, 0, body+2*pg, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_ANON|syscall.MAP_PRIVATE)
 	if err != nil {
-		t.Skipf("mmap: %v", err)
+		t.Fatalf("mmap: %v", err) // a gate that cannot be set up must not pass
 	}
 	t.Cleanup(func() { _ = syscall.Munmap(m) })
 	for _, g := range [][]byte{m[:pg], m[pg+body:]} {
 		if err := syscall.Mprotect(g, syscall.PROT_NONE); err != nil {
-			t.Skipf("mprotect: %v", err)
+			t.Fatalf("mprotect: %v", err)
 		}
 	}
 	if atEnd {
