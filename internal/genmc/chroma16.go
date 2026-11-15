@@ -84,22 +84,25 @@ func (a *asm) chroma16StrongCore() {
 // (the strong forms take no tc0 and mask).
 func chroma16Func(name string, strong, vertical bool) string {
 	var a asm
-	size := 48
+	size := 68
 	if strong {
-		size = 40
-		fmt.Fprintf(&a.b, "// func %s(cb, cr *byte, stride int, alpha, beta int)\n", name)
+		size = 56
+		fmt.Fprintf(&a.b, "// func %s(cb, cr *byte, stride int, alphaCb, betaCb, alphaCr, betaCr int)\n", name)
 	} else {
-		fmt.Fprintf(&a.b, "// func %s(cb, cr *byte, stride int, alpha, beta int, tc0, mask uint32)\n", name)
+		fmt.Fprintf(&a.b, "// func %s(cb, cr *byte, stride int, alphaCb, betaCb, alphaCr, betaCr int, tc0Cb, tc0Cr, mask uint32)\n", name)
 	}
 	fmt.Fprintf(&a.b, "TEXT ·%s(SB), NOSPLIT, $0-%d\n", name, size)
 	a.f("MOVD cb+0(FP), R0")
 	a.f("MOVD cr+8(FP), R9")
 	a.f("MOVD stride+16(FP), R1")
-	a.f("MOVD alpha+24(FP), R4")
-	a.f("MOVD beta+32(FP), R5")
+	a.f("MOVD alphaCb+24(FP), R4")
+	a.f("MOVD betaCb+32(FP), R5")
+	a.f("MOVD alphaCr+40(FP), R11")
+	a.f("MOVD betaCr+48(FP), R12")
 	if !strong {
-		a.f("MOVWU tc0+40(FP), R6")
-		a.f("MOVWU mask+44(FP), R7")
+		a.f("MOVWU tc0Cb+56(FP), R6")
+		a.f("MOVWU tc0Cr+60(FP), R13")
+		a.f("MOVWU mask+64(FP), R7")
 	}
 
 	if vertical {
@@ -130,8 +133,13 @@ func chroma16Func(name string, strong, vertical bool) string {
 		}
 	}
 
+	// Thresholds and tC0 are per plane: Cb in the low half, Cr in the high.
 	a.f("VDUP R4, V20.B16")
+	a.f("VDUP R11, V8.B16")
+	a.f("VMOV V8.D[0], V20.D[1]")
 	a.f("VDUP R5, V21.B16")
+	a.f("VDUP R12, V8.B16")
+	a.f("VMOV V8.D[0], V21.D[1]")
 	if strong {
 		a.f("MOVD $2, R8")
 		a.f("VDUP R8, V23.H8")
@@ -139,10 +147,12 @@ func chroma16Func(name string, strong, vertical bool) string {
 	} else {
 		a.f("VMOV R6, V22.S[0]")
 		a.f("VZIP1 V22.B8, V22.B8, V22.B8") // two lines per group
-		a.f("VMOV V22.D[0], V22.D[1]")      // the same for the Cr half
+		a.f("VMOV R13, V8.S[0]")
+		a.f("VZIP1 V8.B8, V8.B8, V8.B8")
+		a.f("VMOV V8.D[0], V22.D[1]") // Cr's tC0 in the high half
 		a.f("VMOV R7, V23.S[0]")
 		a.f("VZIP1 V23.B8, V23.B8, V23.B8")
-		a.f("VMOV V23.D[0], V23.D[1]")
+		a.f("VMOV V23.D[0], V23.D[1]") // the strength mask is shared
 		a.f("MOVD $4, R8")
 		a.f("VDUP R8, V24.H8")
 		a.f("MOVD $1, R8")

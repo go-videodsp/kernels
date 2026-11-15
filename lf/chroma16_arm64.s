@@ -7,15 +7,18 @@
 // H.264 chroma deblocking of Cb and Cr in one pass (4:2:0, 8-bit), NEON: the
 // eight lines of each plane share a register. See internal/genmc/chroma16.go.
 
-// func deblockChromaPairNormalH(cb, cr *byte, stride int, alpha, beta int, tc0, mask uint32)
-TEXT ·deblockChromaPairNormalH(SB), NOSPLIT, $0-48
+// func deblockChromaPairNormalH(cb, cr *byte, stride int, alphaCb, betaCb, alphaCr, betaCr int, tc0Cb, tc0Cr, mask uint32)
+TEXT ·deblockChromaPairNormalH(SB), NOSPLIT, $0-68
 	MOVD cb+0(FP), R0
 	MOVD cr+8(FP), R9
 	MOVD stride+16(FP), R1
-	MOVD alpha+24(FP), R4
-	MOVD beta+32(FP), R5
-	MOVWU tc0+40(FP), R6
-	MOVWU mask+44(FP), R7
+	MOVD alphaCb+24(FP), R4
+	MOVD betaCb+32(FP), R5
+	MOVD alphaCr+40(FP), R11
+	MOVD betaCr+48(FP), R12
+	MOVWU tc0Cb+56(FP), R6
+	MOVWU tc0Cr+60(FP), R13
+	MOVWU mask+64(FP), R7
 	LSL $1, R1, R8
 	SUB R8, R0, R2
 	SUB R8, R9, R10
@@ -36,10 +39,16 @@ TEXT ·deblockChromaPairNormalH(SB), NOSPLIT, $0-48
 	ADD R1, R2
 	ADD R1, R10
 	VDUP R4, V20.B16
+	VDUP R11, V8.B16
+	VMOV V8.D[0], V20.D[1]
 	VDUP R5, V21.B16
+	VDUP R12, V8.B16
+	VMOV V8.D[0], V21.D[1]
 	VMOV R6, V22.S[0]
 	VZIP1 V22.B8, V22.B8, V22.B8
-	VMOV V22.D[0], V22.D[1]
+	VMOV R13, V8.S[0]
+	VZIP1 V8.B8, V8.B8, V8.B8
+	VMOV V8.D[0], V22.D[1]
 	VMOV R7, V23.S[0]
 	VZIP1 V23.B8, V23.B8, V23.B8
 	VMOV V23.D[0], V23.D[1]
@@ -112,15 +121,18 @@ TEXT ·deblockChromaPairNormalH(SB), NOSPLIT, $0-48
 	VST1 V2.D[1], (R9)
 	RET
 
-// func deblockChromaPairNormalV(cb, cr *byte, stride int, alpha, beta int, tc0, mask uint32)
-TEXT ·deblockChromaPairNormalV(SB), NOSPLIT, $0-48
+// func deblockChromaPairNormalV(cb, cr *byte, stride int, alphaCb, betaCb, alphaCr, betaCr int, tc0Cb, tc0Cr, mask uint32)
+TEXT ·deblockChromaPairNormalV(SB), NOSPLIT, $0-68
 	MOVD cb+0(FP), R0
 	MOVD cr+8(FP), R9
 	MOVD stride+16(FP), R1
-	MOVD alpha+24(FP), R4
-	MOVD beta+32(FP), R5
-	MOVWU tc0+40(FP), R6
-	MOVWU mask+44(FP), R7
+	MOVD alphaCb+24(FP), R4
+	MOVD betaCb+32(FP), R5
+	MOVD alphaCr+40(FP), R11
+	MOVD betaCr+48(FP), R12
+	MOVWU tc0Cb+56(FP), R6
+	MOVWU tc0Cr+60(FP), R13
+	MOVWU mask+64(FP), R7
 	SUB $2, R0, R2
 	SUB $2, R9, R10
 	FMOVS (R2), F0
@@ -184,10 +196,16 @@ TEXT ·deblockChromaPairNormalV(SB), NOSPLIT, $0-48
 	VZIP1 V6.D2, V2.D2, V2.D2
 	VZIP1 V7.D2, V3.D2, V3.D2
 	VDUP R4, V20.B16
+	VDUP R11, V8.B16
+	VMOV V8.D[0], V20.D[1]
 	VDUP R5, V21.B16
+	VDUP R12, V8.B16
+	VMOV V8.D[0], V21.D[1]
 	VMOV R6, V22.S[0]
 	VZIP1 V22.B8, V22.B8, V22.B8
-	VMOV V22.D[0], V22.D[1]
+	VMOV R13, V8.S[0]
+	VZIP1 V8.B8, V8.B8, V8.B8
+	VMOV V8.D[0], V22.D[1]
 	VMOV R7, V23.S[0]
 	VZIP1 V23.B8, V23.B8, V23.B8
 	VMOV V23.D[0], V23.D[1]
@@ -316,13 +334,15 @@ TEXT ·deblockChromaPairNormalV(SB), NOSPLIT, $0-48
 	ADD R1, R10
 	RET
 
-// func deblockChromaPairStrongV(cb, cr *byte, stride int, alpha, beta int)
-TEXT ·deblockChromaPairStrongV(SB), NOSPLIT, $0-40
+// func deblockChromaPairStrongV(cb, cr *byte, stride int, alphaCb, betaCb, alphaCr, betaCr int)
+TEXT ·deblockChromaPairStrongV(SB), NOSPLIT, $0-56
 	MOVD cb+0(FP), R0
 	MOVD cr+8(FP), R9
 	MOVD stride+16(FP), R1
-	MOVD alpha+24(FP), R4
-	MOVD beta+32(FP), R5
+	MOVD alphaCb+24(FP), R4
+	MOVD betaCb+32(FP), R5
+	MOVD alphaCr+40(FP), R11
+	MOVD betaCr+48(FP), R12
 	SUB $2, R0, R2
 	SUB $2, R9, R10
 	FMOVS (R2), F0
@@ -386,7 +406,11 @@ TEXT ·deblockChromaPairStrongV(SB), NOSPLIT, $0-40
 	VZIP1 V6.D2, V2.D2, V2.D2
 	VZIP1 V7.D2, V3.D2, V3.D2
 	VDUP R4, V20.B16
+	VDUP R11, V8.B16
+	VMOV V8.D[0], V20.D[1]
 	VDUP R5, V21.B16
+	VDUP R12, V8.B16
+	VMOV V8.D[0], V21.D[1]
 	MOVD $2, R8
 	VDUP R8, V23.H8
 	VUQSUB V2.B16, V1.B16, V8.B16
