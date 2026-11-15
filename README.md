@@ -84,9 +84,27 @@ The supported luma block sizes are the seven the standard uses: 16x16, 16x8,
 Measured on an Apple M4 Max, one core, Go benchmarks, NEON against our
 portable Go. Every table below was taken at a 1-min load far above the rule's
 8 (the load is given with each), so read the ratios as orders of magnitude and
-re-measure on a quiet machine; raw output is in [docs/bench](docs/bench). No
-comparison with FFmpeg is published yet: a checkasm binary is not available
-here, and the comparison is planned on a quiet amd64 host.
+re-measure on a quiet machine; raw output is in [docs/bench](docs/bench).
+
+**Comparing with FFmpeg, per stage.** No FFmpeg `checkasm` binary is available,
+so the comparison is made on decoder time.
+[docs/bench/ffmpeg-stages](docs/bench/ffmpeg-stages) writes synthetic Baseline
+H.264 streams (an IDR picture of I_PCM macroblocks, then P pictures of
+`P_L0_16x16` macroblocks with one motion vector, no residual, no deblocking)
+and times `ffmpeg -benchmark -threads 1` on them: the difference between two
+picture counts, per macroblock, minus the integer-vector case, is FFmpeg's cost
+of that interpolation (the chroma interpolation a fractional vector also
+triggers is measured separately and removed); explicit weights are one more
+case. The loop filter is `-skip_loop_filter all` on an all-intra clip. The
+frame-sweep benchmarks (`BenchmarkLumaFrame`, `BenchmarkWeightFrame`,
+`BenchmarkDeblockFrame`) run our kernels over every macroblock of a 1920x1088
+picture, ns per macroblock, to put next to those figures: unlike the
+L1-resident kernel benchmarks they include the cache and call overhead of a
+decoder. FFmpeg's figures include its own per-macroblock overhead and edge
+emulation on the picture border, which a kernel benchmark does not: they are an
+upper bound on its kernel time. FFmpeg 6.1.1 on a Ryzen 9 7950X (host load 1.7
+to 2.7, re-measure at load <= 1): raw output in
+[docs/bench/ffmpeg-stages-zen4.txt](docs/bench/ffmpeg-stages-zen4.txt).
 
 `mc.PutLuma`, ns per block (NEON / portable), from
 `docs/bench/mc-luma-m4max-indicative.txt` (one run, 30000 iterations; the

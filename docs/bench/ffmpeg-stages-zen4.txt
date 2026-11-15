@@ -1,0 +1,45 @@
+FFmpeg 6.1.1 (Ubuntu 24.04, libavcodec 60.31.102, x86 asm), AMD Ryzen 9 7950X (Zen 4), one core
+(taskset -c 9), ffmpeg -benchmark -threads 1, CPU time = utime + stime.
+
+Host load: 1-minute load average 1.7 to 2.7 on a 32-thread machine while these ran (another
+session was using it; the pinned core and its SMT sibling were idle). The rule is load <= 1:
+re-measure when the host is quiet before quoting these to the digit.
+
+== Stage: motion compensation and explicit weighting =========================================
+Command (on the host): ./ffs --ffmpeg /usr/bin/ffmpeg --dir ~/vd/streams --rounds 5 --cpu 9
+Streams: 1920x1088 (120 x 68 macroblocks), one IDR picture of I_PCM macroblocks, then 100 and 300
+P pictures of P_L0_16x16 macroblocks with one motion vector, no residual, deblocking disabled.
+Per-macroblock time = (T300 - T100) / 200 pictures / 8160 macroblocks, median of 5 interleaved
+rounds. "- G" is the excess over the integer vector. "luma only" also removes the chroma
+interpolation the same vector triggers (cases "chroma x/y/xy": an integer luma vector of one
+sample is a half-sample chroma vector).
+
+case                                          ns/MB        - G  luma only
+luma G                                         72.9        0.0        0.0
+luma a                                        106.6       33.7       29.4
+luma b                                        107.8       34.9       30.6
+luma c                                        106.0       33.1       28.8
+luma d                                        102.9       30.0       26.3
+luma e                                        131.1       58.2       50.9
+luma f                                        164.8       91.9       84.6
+luma g                                        134.2       61.3       53.9
+luma h                                         95.6       22.7       19.0
+luma i                                        145.8       72.9       65.6
+luma j                                        132.4       59.4       52.1
+luma k                                        145.8       72.9       65.6
+luma n                                        102.9       30.0       26.3
+luma p                                        131.1       58.2       50.9
+luma q                                        164.8       91.9       84.6
+luma r                                        131.7       58.8       51.5
+chroma xy                                      80.3        7.4
+chroma x                                       77.2        4.3
+chroma y                                       76.6        3.7
+weight uni 16x16 (denom 5, w 40, o 3)          83.3       10.4
+
+== Stage: loop filter (luma + chroma) ========================================================
+Clip: all-intra 1920x1080, 120 frames, libx264 -preset veryfast -g 1 -crf 38 (bS 4 on macroblock
+edges, bS 3 inside). Decode with and without the loop filter:
+  ffmpeg -benchmark -threads 1 -i intra.mp4 -f null -                          utime 0.780 0.789 0.786 s
+  ffmpeg -benchmark -threads 1 -skip_loop_filter all -i intra.mp4 -f null -    utime 0.498 0.499 0.496 s
+Difference (median) 0.288 s over 120 pictures x 8160 macroblocks = 294 ns per macroblock for luma
+and chroma together, bS derivation included (ffmpeg -skip_loop_filter all skips both).
