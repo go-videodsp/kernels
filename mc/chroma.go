@@ -40,23 +40,56 @@ func PutChroma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride,
 	if overlaps(dst, dstOff, dLast, src, srcOff, sLast) {
 		panic("mc: destination and source blocks share memory")
 	}
-	putChromaDispatch(dst, dst, dstOff, dstStride, src, src, srcOff, srcStride, w, h, xFrac, yFrac, 1)
+	putChromaDispatch(dst, dst, dstOff, dstStride, src, src, srcOff, srcStride, w, h, xFrac, yFrac, 1, false)
+}
+
+// AvgChroma is PutChroma averaged into dst, (dst + p + 1) >> 1 (Equation 8-273):
+// the second prediction of a bi-predicted block, fused into the interpolation.
+// Its checks and panics are PutChroma's.
+func AvgChroma(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
+	dLast := checkChroma("destination", len(dst), dstOff, dstStride, w, 0, h)
+	sLast := checkChroma("source", len(src), srcOff, srcStride, w, 1, h)
+	checkFrac(xFrac, yFrac)
+	if overlaps(dst, dstOff, dLast, src, srcOff, sLast) {
+		panic("mc: destination and source blocks share memory")
+	}
+	putChromaDispatch(dst, dst, dstOff, dstStride, src, src, srcOff, srcStride, w, h, xFrac, yFrac, 1, true)
 }
 
 // PutChromaPair is PutChroma for the two chroma planes of a prediction, which
 // share the position, the strides, the size and the fractions, in one call.
 func PutChromaPair(dstCb, dstCr []byte, dstOff, dstStride int, srcCb, srcCr []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
+	checkChromaPair(dstCb, dstCr, dstOff, dstStride, srcCb, srcCr, srcOff, srcStride, w, h, xFrac, yFrac)
+	putChromaDispatch(dstCb, dstCr, dstOff, dstStride, srcCb, srcCr, srcOff, srcStride, w, h, xFrac, yFrac, 2, false)
+}
+
+// AvgChromaPair is PutChromaPair averaged into the destinations, (dst + p + 1)
+// >> 1 (Equation 8-273). Its checks and panics are PutChromaPair's.
+func AvgChromaPair(dstCb, dstCr []byte, dstOff, dstStride int, srcCb, srcCr []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
+	checkChromaPair(dstCb, dstCr, dstOff, dstStride, srcCb, srcCr, srcOff, srcStride, w, h, xFrac, yFrac)
+	putChromaDispatch(dstCb, dstCr, dstOff, dstStride, srcCb, srcCr, srcOff, srcStride, w, h, xFrac, yFrac, 2, true)
+}
+
+// checkChromaPair proves the four footprints and that no destination shares
+// memory with another block. The two planes of a prediction usually have equal
+// lengths, in which case one proof stands for both.
+func checkChromaPair(dstCb, dstCr []byte, dstOff, dstStride int, srcCb, srcCr []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
 	d0 := checkChroma("destination Cb", len(dstCb), dstOff, dstStride, w, 0, h)
-	d1 := checkChroma("destination Cr", len(dstCr), dstOff, dstStride, w, 0, h)
+	d1 := d0
+	if len(dstCr) != len(dstCb) {
+		d1 = checkChroma("destination Cr", len(dstCr), dstOff, dstStride, w, 0, h)
+	}
 	s0 := checkChroma("source Cb", len(srcCb), srcOff, srcStride, w, 1, h)
-	s1 := checkChroma("source Cr", len(srcCr), srcOff, srcStride, w, 1, h)
+	s1 := s0
+	if len(srcCr) != len(srcCb) {
+		s1 = checkChroma("source Cr", len(srcCr), srcOff, srcStride, w, 1, h)
+	}
 	checkFrac(xFrac, yFrac)
 	if overlaps(dstCb, dstOff, d0, dstCr, dstOff, d1) ||
 		overlaps(dstCb, dstOff, d0, srcCb, srcOff, s0) || overlaps(dstCb, dstOff, d0, srcCr, srcOff, s1) ||
 		overlaps(dstCr, dstOff, d1, srcCb, srcOff, s0) || overlaps(dstCr, dstOff, d1, srcCr, srcOff, s1) {
 		panic("mc: a destination block shares memory with another block")
 	}
-	putChromaDispatch(dstCb, dstCr, dstOff, dstStride, srcCb, srcCr, srcOff, srcStride, w, h, xFrac, yFrac, 2)
 }
 
 func checkFrac(xFrac, yFrac int) {
@@ -94,9 +127,25 @@ func putChromaRef(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStri
 	}
 }
 
-func putChromaPairRef(dst0, dst1 []byte, dstOff, dstStride int, src0, src1 []byte, srcOff, srcStride, w, h, xFrac, yFrac, planes int) {
-	putChromaRef(dst0, dstOff, dstStride, src0, srcOff, srcStride, w, h, xFrac, yFrac)
+// avgChromaRef is Equation 8-273 applied to the prediction of 8-270.
+func avgChromaRef(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, xFrac, yFrac int) {
+	var p [64]byte
+	putChromaRef(p[:], 0, w, src, srcOff, srcStride, w, h, xFrac, yFrac)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			i := dstOff + y*dstStride + x
+			dst[i] = byte((int(dst[i]) + int(p[y*w+x]) + 1) >> 1)
+		}
+	}
+}
+
+func putChromaPairRef(dst0, dst1 []byte, dstOff, dstStride int, src0, src1 []byte, srcOff, srcStride, w, h, xFrac, yFrac, planes int, avg bool) {
+	f := putChromaRef
+	if avg {
+		f = avgChromaRef
+	}
+	f(dst0, dstOff, dstStride, src0, srcOff, srcStride, w, h, xFrac, yFrac)
 	if planes == 2 {
-		putChromaRef(dst1, dstOff, dstStride, src1, srcOff, srcStride, w, h, xFrac, yFrac)
+		f(dst1, dstOff, dstStride, src1, srcOff, srcStride, w, h, xFrac, yFrac)
 	}
 }

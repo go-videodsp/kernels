@@ -40,7 +40,12 @@ func (g *gen) l(format string, a ...any) { fmt.Fprintf(&g.b, format+"\n", a...) 
 
 var widths = []int{8, 4, 2}
 
-func name(w int) string { return fmt.Sprintf("chroma%d", w) }
+func name(w int, avg bool) string {
+	if avg {
+		return fmt.Sprintf("chromaAvg%d", w)
+	}
+	return fmt.Sprintf("chroma%d", w)
+}
 
 // ---------------------------------------------------------------- amd64
 
@@ -63,9 +68,9 @@ func (g *gen) loadH86(w, d int) {
 	g.f("VPMADDUBSW X6, X1, X%d", d)
 }
 
-func (g *gen) amd64(w int) {
-	g.l("// func %sAVX2(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)", name(w))
-	g.l("TEXT ·%sAVX2(SB), NOSPLIT, $0-88", name(w))
+func (g *gen) amd64(w int, avg bool) {
+	g.l("// func %sAVX2(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)", name(w, avg))
+	g.l("TEXT ·%sAVX2(SB), NOSPLIT, $0-88", name(w, avg))
 	g.f("MOVQ dst0+0(FP), DI")
 	g.f("MOVQ dst1+8(FP), R8")
 	g.f("MOVQ dstStride+16(FP), DX")
@@ -98,6 +103,19 @@ func (g *gen) amd64(w int) {
 	g.f("VPADDW X9, X5, X5")
 	g.f("VPSRLW $6, X5, X5")
 	g.f("VPACKUSWB X5, X5, X5")
+	if avg {
+		// (dst + p + 1) >> 1, 8-273: the second prediction of a bi-predicted block
+		switch w {
+		case 8:
+			g.f("VMOVQ (DI), X8")
+		case 4:
+			g.f("VMOVD (DI), X8")
+		default:
+			g.f("MOVWLZX (DI), AX")
+			g.f("VMOVD AX, X8")
+		}
+		g.f("VPAVGB X8, X5, X5")
+	}
 	switch w {
 	case 8:
 		g.f("VMOVQ X5, (DI)")
@@ -129,8 +147,10 @@ func (g *gen) amd64File() string {
 	g.l("")
 	g.l("#include \"textflag.h\"")
 	g.l("")
-	for _, w := range widths {
-		g.amd64(w)
+	for _, avg := range []bool{false, true} {
+		for _, w := range widths {
+			g.amd64(w, avg)
+		}
 	}
 	return g.b.String()
 }
@@ -158,9 +178,9 @@ func (g *gen) loadH64(w, d int) {
 	g.f("VUMLAL V21.B8, V2.B8, V%d.H8", d)
 }
 
-func (g *gen) arm64(w int) {
-	g.l("// func %sNEON(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)", name(w))
-	g.l("TEXT ·%sNEON(SB), NOSPLIT, $0-88", name(w))
+func (g *gen) arm64(w int, avg bool) {
+	g.l("// func %sNEON(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)", name(w, avg))
+	g.l("TEXT ·%sNEON(SB), NOSPLIT, $0-88", name(w, avg))
 	g.f("MOVD dst0+0(FP), R0")
 	g.f("MOVD dst1+8(FP), R8")
 	g.f("MOVD dstStride+16(FP), R1")
@@ -188,6 +208,20 @@ func (g *gen) arm64(w int) {
 	g.f("VMLA V23.H8, V3.H8, V5.H8")
 	g.f("VSRSHR $6, V5.H8, V5.H8")
 	g.f("VXTN V5.H8, V5.B8")
+	if avg {
+		// (dst + p + 1) >> 1, 8-273: the second prediction of a bi-predicted block
+		switch w {
+		case 8:
+			g.f("VLD1 (R0), [V6.B8]")
+		case 4:
+			g.f("MOVWU (R0), R7")
+			g.f("VMOV R7, V6.S[0]")
+		default:
+			g.f("MOVHU (R0), R7")
+			g.f("VMOV R7, V6.H[0]")
+		}
+		g.f("VURHADD V6.B8, V5.B8, V5.B8")
+	}
 	switch w {
 	case 8:
 		g.f("VST1 [V5.B8], (R0)")
@@ -220,8 +254,10 @@ func (g *gen) arm64File() string {
 	g.l("")
 	g.l("#include \"textflag.h\"")
 	g.l("")
-	for _, w := range widths {
-		g.arm64(w)
+	for _, avg := range []bool{false, true} {
+		for _, w := range widths {
+			g.arm64(w, avg)
+		}
 	}
 	return g.b.String()
 }

@@ -27,7 +27,7 @@ func TestChromaDispatchIsAVX2(t *testing.T) {
 		w, h := sz[0], sz[1]
 		src, dst := chromaPlane(r, 16*16), chromaPlane(r, 16*16)
 		want := append([]byte(nil), dst...)
-		putChromaAVX2(dst, dst, 0, 16, src, src, 0, 16, w, h, 5, 3, 1)
+		putChromaAVX2(dst, dst, 0, 16, src, src, 0, 16, w, h, 5, 3, 1, false)
 		putChromaRef(want, 0, 16, src, 0, 16, w, h, 5, 3)
 		if !bytes.Equal(dst, want) {
 			t.Fatalf("%dx%d: AVX2 differs from the reference at %d", w, h, chromaDiff(dst, want))

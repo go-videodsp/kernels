@@ -27,17 +27,22 @@ func Window(n, off, stride, rowsBefore, rowsAfter, colsBefore, colsAfter int) (f
 	}
 	un, uoff := uint64(n), uint64(off)
 
-	hi, lo := bits.Mul64(uint64(stride), uint64(rowsBefore))
-	if hi != 0 || lo > uoff {
-		return 0, 0, false
+	// Most callers read nothing above the block: no product to take then.
+	var back uint64
+	if rowsBefore != 0 {
+		hi, lo := bits.Mul64(uint64(stride), uint64(rowsBefore))
+		if hi != 0 || lo > uoff {
+			return 0, 0, false
+		}
+		back = lo
 	}
-	// lo <= off < 2^63 and colsBefore < 2^63: the sum cannot wrap.
-	back := lo + uint64(colsBefore)
+	// back <= off < 2^63 and colsBefore < 2^63: the sum cannot wrap.
+	back += uint64(colsBefore)
 	if back > uoff {
 		return 0, 0, false
 	}
 
-	hi, lo = bits.Mul64(uint64(stride), uint64(rowsAfter))
+	hi, lo := bits.Mul64(uint64(stride), uint64(rowsAfter))
 	if hi != 0 || lo >= un {
 		return 0, 0, false
 	}
