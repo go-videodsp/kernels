@@ -56,6 +56,10 @@ jobs:
       - run: go test -race ./...
       # Fuzz targets over their committed seed corpus: deterministic, no time box.
       - run: go test -run '^Fuzz' ./...
+      # The stage-timing tool is a nested module (it needs cobra): test it too.
+      - name: ffmpeg-stages tool
+        shell: bash
+        run: cd docs/bench/ffmpeg-stages && go vet ./... && go test -count=1 ./...
       - name: coverage gate (100% of the statements that exist)
         shell: bash
         run: |
