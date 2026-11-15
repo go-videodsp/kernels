@@ -22,6 +22,7 @@ profile that sets the priorities, is in
 | Chroma deblocking, 4:2:0, 8 lines per call | `lf.DeblockChromaV/H`, `lf.DeblockChromaIntraV/H` | 8.7.2.2 to 8.7.2.4 |
 | Chroma deblocking, Cb and Cr in one call, each plane with its own indexes | `lf.DeblockChromaPairV/H`, `lf.DeblockChromaPairIntraV/H` | 8.7.2.2 to 8.7.2.4 |
 | 8x8 coefficient scaling, inverse transform and add to the prediction, one call per block | `itx.Dequant8x8IDCTAdd` | 8.5.9, 8.5.13, 8.5.14 |
+| 4x4 coefficient scaling, inverse transform and add for the blocks of a 16x16 or 8x8 region in one call, and the luma DC transform | `itx.Dequant4x4IDCTAddBlocks`, `itx.LumaDCDequant` | 8.5.9, 8.5.10, 8.5.12, 8.5.14 |
 | Threshold tables | `lf.Alpha`, `lf.Beta`, `lf.TC0` | Tables 8-16, 8-17 |
 
 Implementations: portable Go on every target (and with the `purego` build tag),
@@ -293,7 +294,7 @@ several blocks or edges per call is the way to recover it.
 |---|---|
 | [`pix`](pix) | copy, rounding average, residual add, edge emulation (empty) |
 | [`mc`](mc) | luma interpolation, weighted prediction; chroma interpolation next |
-| [`itx`](itx) | the 8x8 dequantise, inverse transform and add (AVX2, NEON, portable); 4x4 and the DC transforms next |
+| [`itx`](itx) | the 8x8 dequantise, inverse transform and add and 4x4 (AVX2, NEON, portable), the luma DC transform; chroma DC next |
 | [`lf`](lf) | deblocking |
 | [`ipred`](ipred) | intra prediction (empty) |
 | [`cpu`](cpu) | which implementation runs on this processor (empty) |
