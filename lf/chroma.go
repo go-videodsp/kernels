@@ -11,7 +11,11 @@ import "fmt"
 // (Equations 8-442, 8-443). bS holds the strength of each group of two lines
 // (the chroma lines whose luma lines share a strength, clause 8.7.2), 0 to 3;
 // indexA and indexB are those of Equations 8-454 and 8-455 computed with the
-// chroma QP (8.7.2: QPc of each macroblock).
+// chroma QP of each macroblock (clause 8.7.2): QPc of Table 8-15 (clause
+// 8.5.8) at qPI = Clip3(-QpBdOffsetC, 51, QPY + qPOffset), Equation 8-311,
+// with qPOffset = chroma_qp_index_offset for Cb (8-309) and
+// second_chroma_qp_index_offset for Cr (8-310), so Cb and Cr can have
+// different indexes (and I_PCM macroblocks use the QPc of QPY 0).
 //
 // The footprint is columns -2 .. +1 around the edge on all 8 lines. It
 // panics, before touching pix, when the footprint does not fit, when
