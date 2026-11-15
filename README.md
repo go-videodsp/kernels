@@ -22,6 +22,7 @@ profile that sets the priorities, is in
 | Luma deblocking, 16 lines per call | `lf.DeblockLumaV/H` (bS 1..3), `lf.DeblockLumaIntraV/H` (bS 4) | 8.7.2.2 to 8.7.2.4 |
 | Chroma deblocking, 4:2:0, 8 lines per call | `lf.DeblockChromaV/H`, `lf.DeblockChromaIntraV/H` | 8.7.2.2 to 8.7.2.4 |
 | Chroma deblocking, Cb and Cr in one call, each plane with its own indexes | `lf.DeblockChromaPairV/H`, `lf.DeblockChromaPairIntraV/H` | 8.7.2.2 to 8.7.2.4 |
+| Deblocking of a whole frame macroblock (luma and both chroma planes, all edges, in the order of 8.7), one region proof instead of one per edge | `lf.DeblockMB`, `lf.MBEdges` | 8.7 |
 | 8x8 coefficient scaling, inverse transform and add to the prediction, one call per block | `itx.Dequant8x8IDCTAdd` | 8.5.9, 8.5.13, 8.5.14 |
 | 4x4 coefficient scaling, inverse transform and add for the blocks of a 16x16 or 8x8 region in one call, and the luma DC transform | `itx.Dequant4x4IDCTAddBlocks`, `itx.LumaDCDequant` | 8.5.9, 8.5.10, 8.5.12, 8.5.14 |
 | Threshold tables | `lf.Alpha`, `lf.Beta`, `lf.TC0` | Tables 8-16, 8-17 |
