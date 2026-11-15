@@ -2,6 +2,8 @@ package mc
 
 import "fmt"
 
+//go:generate go run ../internal/genweight86 ..
+
 // WeightUni applies explicit weighted prediction to one prediction block in
 // place (ITU-T H.264 (V16) (06/2026), clause 8.4.2.3.2, Equations 8-274 and
 // 8-275, the single-list forms):
