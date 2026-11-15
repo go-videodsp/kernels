@@ -1,6 +1,10 @@
 package lf
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-videodsp/kernels/internal/bounds"
+)
 
 // DeblockChromaV filters one vertical chroma edge of 8 lines (a 4:2:0
 // macroblock edge) with boundary strength below 4: clause 8.7.2.3 with
@@ -58,8 +62,8 @@ func checkChromaStrength(bS [4]uint8) {
 	}
 }
 
-// checkChroma is the bounds proof, in int64 so that no 32-bit target can
-// overflow. Lines of a horizontal edge are 8 adjacent columns, hence
+// checkChroma is the bounds proof (internal/bounds.Window: no product can wrap
+// on any target). Lines of a horizontal edge are 8 adjacent columns, hence
 // stride >= 8 for both directions.
 func checkChroma(n, off, stride int, vertical bool, indexA, indexB int) {
 	checkIndex("indexA", indexA)
@@ -67,15 +71,13 @@ func checkChroma(n, off, stride int, vertical bool, indexA, indexB int) {
 	if stride < 8 {
 		panic(fmt.Sprintf("lf: stride %d is smaller than the 8 lines of a chroma edge", stride))
 	}
-	var first, last int64
+	var ok bool
 	if vertical {
-		first = int64(off) - 2
-		last = int64(off) + 7*int64(stride) + 1
+		_, _, ok = bounds.Window(n, off, stride, 0, 7, 2, 1)
 	} else {
-		first = int64(off) - 2*int64(stride)
-		last = int64(off) + int64(stride) + 7
+		_, _, ok = bounds.Window(n, off, stride, 2, 1, 0, 7)
 	}
-	if first < 0 || last >= int64(n) {
+	if !ok {
 		panic(fmt.Sprintf("lf: chroma edge footprint does not fit: offset %d stride %d vertical %v length %d", off, stride, vertical, n))
 	}
 }

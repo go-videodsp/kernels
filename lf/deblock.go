@@ -1,6 +1,10 @@
 package lf
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-videodsp/kernels/internal/bounds"
+)
 
 //go:generate go run ../internal/genmc ..
 //go:generate go run ../internal/genlf86 ..
@@ -87,8 +91,8 @@ func DeblockLumaIntraH(pix []byte, off, stride, indexA, indexB int) {
 	deblockStrong(pix, off, stride, false, indexA, indexB)
 }
 
-// checkEdge is the bounds proof, in int64 so that no 32-bit target can
-// overflow. Lines of a horizontal edge are 16 adjacent columns and rows of
+// checkEdge is the bounds proof (internal/bounds.Window: no product can wrap
+// on any target). Lines of a horizontal edge are 16 adjacent columns and rows of
 // the footprint must not overlap, hence stride >= 16 for both directions.
 func checkEdge(n, off, stride int, vertical bool, indexA, indexB int) {
 	checkIndex("indexA", indexA)
@@ -96,15 +100,13 @@ func checkEdge(n, off, stride int, vertical bool, indexA, indexB int) {
 	if stride < 16 {
 		panic(fmt.Sprintf("lf: stride %d is smaller than the 16 lines of an edge", stride))
 	}
-	var first, last int64
+	var ok bool
 	if vertical {
-		first = int64(off) - 4
-		last = int64(off) + 15*int64(stride) + 3
+		_, _, ok = bounds.Window(n, off, stride, 0, 15, 4, 3)
 	} else {
-		first = int64(off) - 4*int64(stride)
-		last = int64(off) + 3*int64(stride) + 15
+		_, _, ok = bounds.Window(n, off, stride, 4, 3, 0, 15)
 	}
-	if first < 0 || last >= int64(n) {
+	if !ok {
 		panic(fmt.Sprintf("lf: edge footprint does not fit: offset %d stride %d vertical %v length %d", off, stride, vertical, n))
 	}
 }
