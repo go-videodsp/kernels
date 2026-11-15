@@ -5,9 +5,8 @@ package lf
 // Cb and Cr in one pass: the eight lines of each plane share a register, with
 // each plane's own thresholds in its half. Only the strong vertical edge has
 // such a kernel: the others were written, measured against two one-plane
-// calls and not kept (normal vertical: a tie, 27 to 30 ns against 26 to 29;
-// normal horizontal: 17.0 against 18.0 ns, inside the noise; strong
-// horizontal: 11.7 against 10.8).
+// calls and not kept (normal vertical: a tie; normal horizontal: a gain inside
+// the run-to-run noise; strong horizontal: a loss).
 
 //go:noescape
 func deblockChromaPairStrongV(cb, cr *byte, stride int, alphaCb, betaCb, alphaCr, betaCr int)

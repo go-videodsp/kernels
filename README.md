@@ -139,11 +139,10 @@ around the run (`docs/bench/lf-chroma-pair-load.txt`), indicative:
 |---|---|---|
 | strong vertical | 21.2, 22.7, 23.1 | 36.2, 37.2, 41.9 |
 
-Three other two-plane kernels were written, measured against two one-plane
-calls and not kept; their numbers are from runs not committed here, at load 18
-to 29: normal vertical a tie (27 to 30 ns against 26 to 29 over four runs),
-normal horizontal 17.0 against 18.0 (inside the noise; earlier runs showed 6 to
-30%), strong horizontal 11.7 against 10.8.
+Three other two-plane kernels (normal vertical, normal horizontal, strong
+horizontal) were written, measured against two one-plane calls and not kept:
+a tie, a gain inside the run-to-run noise, and a loss. Those runs are not
+committed, so no number for them is claimed.
 
 Small blocks gain little (4x4 weighting, chroma edges): the call, the bounds
 proof and the constant setup cost about as much as the arithmetic. Batching
