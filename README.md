@@ -72,7 +72,26 @@ load 30, indicative:
 | vertical | 36 / 289 | 36 / 98 |
 | horizontal | 25 / 126 | 15 / 76 |
 
-Chroma deblocking is the next PR. Raw output in [docs/bench](docs/bench).
+**Chroma deblocking (4:2:0, 8 lines per call).** `lf.DeblockChromaV`/`H`
+(bS 1..3, one strength per group of two lines) and `DeblockChromaIntraV`/`H`
+(bS 4): clause 8.7.2.3/8.7.2.4 with chromaStyleFilteringFlag 1, so `tC = tC0 +
+1` and only p0 and q0 change. NEON, flat plane, load 39, indicative, ns per
+edge (NEON / portable Go):
+
+| Edge | normal | strong |
+|---|---|---|
+| vertical | 17 / 24 | portable (tie) |
+| horizontal | 11 / 21 | 7.6 / 12 |
+
+A strong vertical NEON kernel was written, measured at a tie with the Go
+code (13.4 / 13.2 ns) and dropped: the two transposes cost what the arithmetic
+saves on eight lines. The gain on chroma is small in general because an edge
+is only eight lines. Ideas considered and not done in this PR: filtering Cb and
+Cr in one call (the same bS, indexA and indexB), and all four chroma edges of a
+macroblock in one call; both amortise the call and the constant setup, which
+is the remaining cost, and belong with the macroblock-level API. No ffmpeg
+column yet: the comparison needs the fractal host at load 0. Raw output in
+[docs/bench](docs/bench).
 
 No FFmpeg `checkasm h264qpel` column: no checkasm binary is installed and the
 local FFmpeg 9.0.2 clone is a partial tree with no build system.

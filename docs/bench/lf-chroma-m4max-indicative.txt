@@ -1,0 +1,14 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/go-videodsp/kernels/lf
+cpu: Apple M4 Max
+BenchmarkChroma/dispatch/normalV-16         	  300000	        17.19 ns/op	 465.41 MB/s
+BenchmarkChroma/dispatch/strongV-16         	  300000	        13.38 ns/op	 597.80 MB/s
+BenchmarkChroma/dispatch/normalH-16         	  300000	        10.84 ns/op	 737.95 MB/s
+BenchmarkChroma/dispatch/strongH-16         	  300000	         7.553 ns/op	1059.19 MB/s
+BenchmarkChroma/portable/normalV-16         	  300000	        24.27 ns/op	 329.68 MB/s
+BenchmarkChroma/portable/strongV-16         	  300000	        13.20 ns/op	 606.19 MB/s
+BenchmarkChroma/portable/normalH-16         	  300000	        20.64 ns/op	 387.54 MB/s
+BenchmarkChroma/portable/strongH-16         	  300000	        12.31 ns/op	 649.97 MB/s
+PASS
+ok  	github.com/go-videodsp/kernels/lf	2.137s
