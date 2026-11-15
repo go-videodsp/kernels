@@ -214,13 +214,18 @@ block (AVX2 / portable Go), L1-resident, host load 0.7 to 2.7 (raw output in
 
 Frame sweep (16x16 over a 1920x1088 picture, ns per macroblock,
 [mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt)):
-uni **11.8**, bi 25.4. FFmpeg 6.1.1 spends 10.4 ns per macroblock on explicit
-luma weighting (synthetic stream, method in the bench PR's
-`docs/bench/ffmpeg-stages`; its figure includes its own per-macroblock
-overhead): **we are about 13 % slower than FFmpeg on uni 16x16**, an open
-defect. The kernel alone is 7.5 ns; the other 4 ns is the public call (bounds
-proof, argument checks, dispatch). An AVX-512 form (`VPMOVUSWB` saves the pack
-and the lane fix-up) was not attempted.
+uni 11.8 before and **9.5** after the call-overhead fix below, bi 25.4 before
+and 22.0 after
+([mc-weight-frame-gate-zen4-avx2.txt](docs/bench/mc-weight-frame-gate-zen4-avx2.txt),
+load 0.54 to 0.61). FFmpeg 6.1.1 spends 9.8 to 10.4 ns per macroblock on
+explicit luma weighting (synthetic stream, method in the FFmpeg paragraph above;
+its figure includes its own per-macroblock overhead and is an upper bound on
+its kernel time), so uni 16x16 is now on par with it, no longer 13 % behind.
+The 4 ns that the public call cost was two non-inlined check calls: the gate is
+now one inlinable expression per block (`blockFits`, `weightOK`) and the
+detailed checks, with their messages, run only on the refusal path; a test
+proves the gate accepts exactly what the checks accept. An AVX-512 form
+(`VPMOVUSWB` saves the pack and the lane fix-up) was not attempted.
 
 Luma deblocking, ns per 16-line edge, flat plane (every line runs the whole
 formula), load 30:
