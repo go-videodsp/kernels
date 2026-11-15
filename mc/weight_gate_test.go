@@ -4,6 +4,8 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/go-videodsp/kernels/internal/boundstest"
 )
 
 func panics(f func()) (p bool) {
@@ -12,15 +14,18 @@ func panics(f func()) (p bool) {
 	return
 }
 
-// The fast gate of WeightUni and WeightBi (blockFits, weightOK) must accept
-// exactly what the detailed checks accept: a gate looser than the checks would
-// let an unproved block reach the assembly, a stricter one would refuse a legal
-// call. Compared on a dense grid of sizes, offsets, strides and parameters,
-// including the edges of every range.
-func TestFastGateEqualsChecks(t *testing.T) {
+// The fast gate of WeightUni and WeightBi must accept exactly what the exact
+// arithmetic accepts. blockFits is judged by internal/boundstest (math/big, no
+// wrap possible), not by a second copy of int arithmetic (that comparison
+// missed the overflow once); weightOK by checkWeights. Slice lengths include
+// ones above safeLen (a plane too large to allocate here is still just an int),
+// strides and offsets include MaxInt and its halves.
+func TestFastGateEqualsExactOracle(t *testing.T) {
 	rng := rand.New(rand.NewSource(5))
 	sizesAll := [][2]int{{16, 16}, {16, 8}, {8, 16}, {8, 8}, {8, 4}, {4, 8}, {4, 4}, {2, 4}, {12, 8}, {16, 4}, {4, 16}, {0, 0}, {-4, 8}}
-	for i := 0; i < 200000; i++ {
+	huge := []int{math.MaxInt, math.MaxInt - 1, math.MaxInt / 2, math.MaxInt/2 + 1, math.MaxInt / 16, math.MaxInt / 31, math.MaxInt/32 - 1, math.MaxInt / 32, math.MaxInt/32 + 1, -1, math.MinInt}
+	pickHuge := func() int { return huge[rng.Intn(len(huge))] }
+	for i := 0; i < 300000; i++ {
 		sz := sizesAll[rng.Intn(len(sizesAll))]
 		w, h := sz[0], sz[1]
 		n := rng.Intn(600)
@@ -29,20 +34,25 @@ func TestFastGateEqualsChecks(t *testing.T) {
 		if rng.Intn(4) == 0 && w > 0 && h > 0 && stride >= w { // the tight case
 			off = n - ((h-1)*stride + w) + rng.Intn(3) - 1
 		}
-		if rng.Intn(50) == 0 {
-			stride = math.MaxInt - rng.Intn(3) // would overflow a plain int product
+		switch rng.Intn(6) {
+		case 0:
+			stride = pickHuge()
+		case 1:
+			off = pickHuge()
+		case 2:
+			n = pickHuge()
+		case 3:
+			n, off, stride = pickHuge(), pickHuge(), pickHuge()
+		}
+		want := validSize(w, h) && stride >= w && boundstest.Fits(n, off, stride, 0, h-1, 0, w-1)
+		if got := blockFits(n, off, stride, w, h); got != want {
+			t.Fatalf("blockFits(n=%d off=%d stride=%d %dx%d) = %v, exact oracle %v", n, off, stride, w, h, got, want)
 		}
 		logWD := rng.Intn(11) - 2
 		weight := []int{-129, -128, 0, 127, 128, 129, rng.Intn(300) - 150}[rng.Intn(7)]
 		offset := []int{-129, -128, 0, 127, 128, rng.Intn(300) - 150}[rng.Intn(6)]
-
-		gate := blockFits(n, off, stride, w, h) && weightOK(logWD, weight, offset)
-		checks := !panics(func() {
-			checkBlock("destination", n, off, stride, w, h)
-			checkWeights(logWD, weight, offset)
-		})
-		if gate != checks {
-			t.Fatalf("n=%d off=%d stride=%d %dx%d logWD=%d w=%d o=%d: gate %v, checks %v", n, off, stride, w, h, logWD, weight, offset, gate, checks)
+		if gate, checks := weightOK(logWD, weight, offset), !panics(func() { checkWeights(logWD, weight, offset) }); gate != checks {
+			t.Fatalf("weightOK(%d, %d, %d) = %v, checkWeights %v", logWD, weight, offset, gate, checks)
 		}
 	}
 }

@@ -2,6 +2,7 @@ package mc
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/go-videodsp/kernels/internal/bounds"
 )
@@ -74,9 +75,27 @@ func WeightBi(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, 
 // predictable branches instead of two calls (measured 3.7 ns for the calls on a
 // 16x16 block, the larger part of the cost of WeightUni). A call they refuse
 // goes to refuseUni, which runs the full checks and panics with their messages.
+//
+// The arithmetic cannot wrap: for a slice of at most safeLen bytes the stride is
+// first compared with the length (a stride above it is refused with no product),
+// so the product with at most 15 rows is below 15*safeLen; a longer slice (a
+// plane of more than 2^26 bytes on a 32-bit target) takes bounds.Window, whose
+// products are checked with bits.Mul64. An int64 product here was the defect of
+// the security fix before it.
 func blockFits(n, off, stride, w, h int) bool {
-	return validSize(w, h) && stride >= w && off >= 0 && int64(off)+int64(h-1)*int64(stride)+int64(w-1) < int64(n)
+	if !validSize(w, h) || stride < w {
+		return false
+	}
+	if n <= safeLen {
+		return uint(off) < uint(n) && stride <= n && off+(h-1)*stride+w-1 < n
+	}
+	_, _, ok := bounds.Window(n, off, stride, 0, h-1, 0, w-1)
+	return ok
 }
+
+// safeLen bounds the slice length for which blockFits multiplies directly:
+// (h-1)*stride <= 15*n and off + 15*n + 15 stay below MaxInt.
+const safeLen = math.MaxInt / 32
 
 func weightOK(logWD, weight, offset int) bool {
 	return uint(logWD) <= 7 && uint(weight+128) <= 256 && uint(offset+128) <= 255
