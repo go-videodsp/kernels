@@ -102,8 +102,12 @@ picture, ns per macroblock, to put next to those figures: unlike the
 L1-resident kernel benchmarks they include the cache and call overhead of a
 decoder. FFmpeg's figures include its own per-macroblock overhead and edge
 emulation on the picture border, which a kernel benchmark does not: they are an
-upper bound on its kernel time. FFmpeg 6.1.1 on a Ryzen 9 7950X (host load 1.7
-to 2.7, re-measure at load <= 1): raw output in
+upper bound on its kernel time. FFmpeg 6.1.1's H.264 qpel has SSE2/SSSE3
+kernels only, no AVX2. The loop-filter comparison is not like for like: our
+benchmark is a flat-plane sweep of the kernels (every line runs the whole
+formula, bS given), while FFmpeg's figure is on real content and includes its
+bS derivation and early exits. FFmpeg 6.1.1 on a Ryzen 9 7950X, run at load
+below 1 with the tool's default limit: exact command and raw output in
 [docs/bench/ffmpeg-stages-zen4.txt](docs/bench/ffmpeg-stages-zen4.txt).
 
 `mc.PutLuma`, ns per block (NEON / portable), from
