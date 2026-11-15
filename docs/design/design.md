@@ -70,9 +70,13 @@ SIMD at all: it is structure (see §3).
 These are not SIMD and they come first, because they also speed up every
 target without assembly (riscv64, loong64, wasm):
 
-1. **Separable centre position.** The HV half-sample `j` is computed today by
-   six horizontal filters *per output sample* (6× redundant). Filter the
-   `h+5` rows horizontally once into a 16-bit row buffer, then vertically.
+1. **Separable centre position.** The HV half-sample `j` is computed today
+   with six horizontal six-tap evaluations plus one vertical one *per output
+   sample*: `7·w·h` evaluations for a w×h block. Filtering the `h+5` rows
+   horizontally once into a 16-bit row buffer, then vertically, costs
+   `(h+5)·w + w·h`. Counted per block: 16x16 1792 → 592 (3.0× fewer),
+   8x8 448 → 168 (2.7×), 4x4 112 → 52 (2.2×); the horizontal part alone
+   drops 4.6× at 16x16 (1536 → 336).
 2. **Fuse quarter-sample averaging into the producer.** Positions a, c, d, n,
    e, g, p, r, f, i, k, q are rounding averages of two half/full-sample
    predictions; today each is a full block written to memory and re-read by
