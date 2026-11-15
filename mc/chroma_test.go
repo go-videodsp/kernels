@@ -73,13 +73,87 @@ func TestPutChromaPairRef(t *testing.T) {
 	for _, planes := range []int{1, 2} {
 		d0, d1 := make([]byte, 64), make([]byte, 64)
 		w0, w1 := make([]byte, 64), make([]byte, 64)
-		putChromaPairRef(d0, d1, 0, 8, src0, src1, 0, 9, 4, 4, 3, 6, planes)
+		putChromaPairRef(d0, d1, 0, 8, src0, src1, 0, 9, 4, 4, 3, 6, planes, false)
 		putChromaRef(w0, 0, 8, src0, 0, 9, 4, 4, 3, 6)
 		if planes == 2 {
 			putChromaRef(w1, 0, 8, src1, 0, 9, 4, 4, 3, 6)
 		}
 		if !bytes.Equal(d0, w0) || !bytes.Equal(d1, w1) {
 			t.Fatalf("planes %d: result differs", planes)
+		}
+		// the averaging form, from a non-zero destination
+		for i := range d0 {
+			d0[i], d1[i], w0[i], w1[i] = byte(3*i), byte(5*i), byte(3*i), byte(5*i)
+		}
+		putChromaPairRef(d0, d1, 0, 8, src0, src1, 0, 9, 4, 4, 3, 6, planes, true)
+		avgChromaRef(w0, 0, 8, src0, 0, 9, 4, 4, 3, 6)
+		if planes == 2 {
+			avgChromaRef(w1, 0, 8, src1, 0, 9, 4, 4, 3, 6)
+		}
+		if !bytes.Equal(d0, w0) || !bytes.Equal(d1, w1) {
+			t.Fatalf("avg, planes %d: result differs", planes)
+		}
+	}
+}
+
+// AvgChroma and AvgChromaPair equal Equation 8-273 applied to the prediction,
+// for every size and fraction, and the pair form touches the planes alike.
+func TestAvgChromaMatchesReference(t *testing.T) {
+	r := rand.New(rand.NewSource(29))
+	for _, sz := range chromaSizes {
+		w, h := sz[0], sz[1]
+		for xf := 0; xf < 8; xf++ {
+			for yf := 0; yf < 8; yf++ {
+				ss, ds := w+1+r.Intn(20), w+r.Intn(20)
+				src0, src1 := chromaPlane(r, (h+2)*ss+8), chromaPlane(r, (h+2)*ss+8)
+				d0, d1 := chromaPlane(r, (h+1)*ds+8), chromaPlane(r, (h+1)*ds+8)
+				w0, w1 := append([]byte(nil), d0...), append([]byte(nil), d1...)
+				so, do := r.Intn(5), r.Intn(5)
+				AvgChroma(d0, do, ds, src0, so, ss, w, h, xf, yf)
+				// the average of a prediction, from the formula of 8-273 on 8-270
+				for y := 0; y < h; y++ {
+					for x := 0; x < w; x++ {
+						p := so + y*ss + x
+						a, b, c, d := int(src0[p]), int(src0[p+1]), int(src0[p+ss]), int(src0[p+ss+1])
+						pred := ((8-xf)*(8-yf)*a + xf*(8-yf)*b + (8-xf)*yf*c + xf*yf*d + 32) >> 6
+						i := do + y*ds + x
+						w0[i] = byte((int(w0[i]) + pred + 1) >> 1)
+					}
+				}
+				if !bytes.Equal(d0, w0) {
+					t.Fatalf("AvgChroma %dx%d frac (%d,%d): first difference at %d", w, h, xf, yf, chromaDiff(d0, w0))
+				}
+				AvgChromaPair(d0, d1, do, ds, src0, src1, so, ss, w, h, xf, yf)
+				avgChromaRef(w0, do, ds, src0, so, ss, w, h, xf, yf)
+				avgChromaRef(w1, do, ds, src1, so, ss, w, h, xf, yf)
+				if !bytes.Equal(d0, w0) || !bytes.Equal(d1, w1) {
+					t.Fatalf("AvgChromaPair %dx%d frac (%d,%d): planes differ", w, h, xf, yf)
+				}
+			}
+		}
+	}
+}
+
+// The avg forms refuse what the put forms refuse.
+func TestAvgChromaRefusals(t *testing.T) {
+	buf := func() []byte { return make([]byte, 400) }
+	for name, f := range map[string]func(){
+		"single overlap": func() {
+			b := buf()
+			AvgChroma(b, 0, 16, b, 4, 16, 8, 8, 1, 1)
+		},
+		"single size": func() { AvgChroma(buf(), 0, 16, buf(), 0, 16, 16, 8, 1, 1) },
+		"pair overlap": func() {
+			b := buf()
+			AvgChromaPair(b, buf(), 0, 16, buf(), b, 0, 16, 8, 8, 1, 1)
+		},
+		"pair length differs": func() { AvgChromaPair(buf(), make([]byte, 10), 0, 16, buf(), buf(), 0, 16, 8, 8, 1, 1) },
+		"pair src length differs": func() {
+			AvgChromaPair(buf(), buf(), 0, 16, buf(), make([]byte, 10), 0, 16, 8, 8, 1, 1)
+		},
+	} {
+		if !refused(f) {
+			t.Errorf("%s was accepted", name)
 		}
 	}
 }

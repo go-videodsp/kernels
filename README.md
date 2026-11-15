@@ -18,7 +18,7 @@ profile that sets the priorities, is in
 |---|---|---|
 | Luma quarter-sample interpolation, 16 positions, put and average | `mc.PutLuma`, `mc.AvgLuma` | 8.4.2.2.1, 8.4.2.3.1 |
 | Explicit weighted prediction | `mc.WeightUni`, `mc.WeightBi` | 8.4.2.3.2 |
-| Chroma sample interpolation, 2, 4 and 8 wide, one plane or Cb and Cr in one call | `mc.PutChroma`, `mc.PutChromaPair` | 8.4.2.2.2 |
+| Chroma sample interpolation, 2, 4 and 8 wide, one plane or Cb and Cr in one call | `mc.PutChroma`, `mc.PutChromaPair`, and `mc.AvgChroma`, `mc.AvgChromaPair` (averaged into the destination, the second prediction of a bi-predicted block) | 8.4.2.2.2, 8.4.2.3.1 |
 | Luma deblocking, 16 lines per call | `lf.DeblockLumaV/H` (bS 1..3), `lf.DeblockLumaIntraV/H` (bS 4) | 8.7.2.2 to 8.7.2.4 |
 | Chroma deblocking, 4:2:0, 8 lines per call | `lf.DeblockChromaV/H`, `lf.DeblockChromaIntraV/H` | 8.7.2.2 to 8.7.2.4 |
 | Chroma deblocking, Cb and Cr in one call, each plane with its own indexes | `lf.DeblockChromaPairV/H`, `lf.DeblockChromaPairIntraV/H` | 8.7.2.2 to 8.7.2.4 |

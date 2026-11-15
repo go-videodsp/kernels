@@ -160,3 +160,167 @@ rows:
 done:
 	RET
 
+// func chromaAvg8NEON(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)
+TEXT ·chromaAvg8NEON(SB), NOSPLIT, $0-88
+	MOVD dst0+0(FP), R0
+	MOVD dst1+8(FP), R8
+	MOVD dstStride+16(FP), R1
+	MOVD src0+24(FP), R2
+	MOVD src1+32(FP), R9
+	MOVD srcStride+40(FP), R3
+	MOVD h+48(FP), R10
+	MOVD planes+56(FP), R4
+	MOVD wx+64(FP), R5
+	AND $255, R5, R12
+	LSR $8, R5, R13
+	VDUP R12, V20.B8
+	VDUP R13, V21.B8
+	MOVD wy0+72(FP), R12
+	VDUP R12, V22.H8
+	MOVD wy1+80(FP), R12
+	VDUP R12, V23.H8
+plane:
+	MOVD R10, R11
+	VLD1 (R2), [V1.B8]
+	ADD $1, R2, R6
+	VLD1 (R6), [V2.B8]
+	VUMULL V20.B8, V1.B8, V0.H8
+	VUMLAL V21.B8, V2.B8, V0.H8
+rows:
+	ADD R3, R2, R2
+	VLD1 (R2), [V1.B8]
+	ADD $1, R2, R6
+	VLD1 (R6), [V2.B8]
+	VUMULL V20.B8, V1.B8, V3.H8
+	VUMLAL V21.B8, V2.B8, V3.H8
+	VMUL V22.H8, V0.H8, V5.H8
+	VMLA V23.H8, V3.H8, V5.H8
+	VSRSHR $6, V5.H8, V5.H8
+	VXTN V5.H8, V5.B8
+	VLD1 (R0), [V6.B8]
+	VURHADD V6.B8, V5.B8, V5.B8
+	VST1 [V5.B8], (R0)
+	ADD R1, R0, R0
+	VORR V3.B16, V3.B16, V0.B16
+	SUBS $1, R11, R11
+	BNE rows
+	SUBS $1, R4, R4
+	BEQ done
+	MOVD R8, R0
+	MOVD R9, R2
+	B plane
+done:
+	RET
+
+// func chromaAvg4NEON(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)
+TEXT ·chromaAvg4NEON(SB), NOSPLIT, $0-88
+	MOVD dst0+0(FP), R0
+	MOVD dst1+8(FP), R8
+	MOVD dstStride+16(FP), R1
+	MOVD src0+24(FP), R2
+	MOVD src1+32(FP), R9
+	MOVD srcStride+40(FP), R3
+	MOVD h+48(FP), R10
+	MOVD planes+56(FP), R4
+	MOVD wx+64(FP), R5
+	AND $255, R5, R12
+	LSR $8, R5, R13
+	VDUP R12, V20.B8
+	VDUP R13, V21.B8
+	MOVD wy0+72(FP), R12
+	VDUP R12, V22.H8
+	MOVD wy1+80(FP), R12
+	VDUP R12, V23.H8
+plane:
+	MOVD R10, R11
+	MOVWU (R2), R7
+	VMOV R7, V1.S[0]
+	MOVWU 1(R2), R7
+	VMOV R7, V2.S[0]
+	VUMULL V20.B8, V1.B8, V0.H8
+	VUMLAL V21.B8, V2.B8, V0.H8
+rows:
+	ADD R3, R2, R2
+	MOVWU (R2), R7
+	VMOV R7, V1.S[0]
+	MOVWU 1(R2), R7
+	VMOV R7, V2.S[0]
+	VUMULL V20.B8, V1.B8, V3.H8
+	VUMLAL V21.B8, V2.B8, V3.H8
+	VMUL V22.H8, V0.H8, V5.H8
+	VMLA V23.H8, V3.H8, V5.H8
+	VSRSHR $6, V5.H8, V5.H8
+	VXTN V5.H8, V5.B8
+	MOVWU (R0), R7
+	VMOV R7, V6.S[0]
+	VURHADD V6.B8, V5.B8, V5.B8
+	VMOV V5.S[0], R7
+	MOVW R7, (R0)
+	ADD R1, R0, R0
+	VORR V3.B16, V3.B16, V0.B16
+	SUBS $1, R11, R11
+	BNE rows
+	SUBS $1, R4, R4
+	BEQ done
+	MOVD R8, R0
+	MOVD R9, R2
+	B plane
+done:
+	RET
+
+// func chromaAvg2NEON(dst0, dst1 *byte, dstStride int, src0, src1 *byte, srcStride, h, planes, wx, wy0, wy1 int)
+TEXT ·chromaAvg2NEON(SB), NOSPLIT, $0-88
+	MOVD dst0+0(FP), R0
+	MOVD dst1+8(FP), R8
+	MOVD dstStride+16(FP), R1
+	MOVD src0+24(FP), R2
+	MOVD src1+32(FP), R9
+	MOVD srcStride+40(FP), R3
+	MOVD h+48(FP), R10
+	MOVD planes+56(FP), R4
+	MOVD wx+64(FP), R5
+	AND $255, R5, R12
+	LSR $8, R5, R13
+	VDUP R12, V20.B8
+	VDUP R13, V21.B8
+	MOVD wy0+72(FP), R12
+	VDUP R12, V22.H8
+	MOVD wy1+80(FP), R12
+	VDUP R12, V23.H8
+plane:
+	MOVD R10, R11
+	MOVHU (R2), R7
+	VMOV R7, V1.H[0]
+	MOVHU 1(R2), R7
+	VMOV R7, V2.H[0]
+	VUMULL V20.B8, V1.B8, V0.H8
+	VUMLAL V21.B8, V2.B8, V0.H8
+rows:
+	ADD R3, R2, R2
+	MOVHU (R2), R7
+	VMOV R7, V1.H[0]
+	MOVHU 1(R2), R7
+	VMOV R7, V2.H[0]
+	VUMULL V20.B8, V1.B8, V3.H8
+	VUMLAL V21.B8, V2.B8, V3.H8
+	VMUL V22.H8, V0.H8, V5.H8
+	VMLA V23.H8, V3.H8, V5.H8
+	VSRSHR $6, V5.H8, V5.H8
+	VXTN V5.H8, V5.B8
+	MOVHU (R0), R7
+	VMOV R7, V6.H[0]
+	VURHADD V6.B8, V5.B8, V5.B8
+	VMOV V5.H[0], R7
+	MOVH R7, (R0)
+	ADD R1, R0, R0
+	VORR V3.B16, V3.B16, V0.B16
+	SUBS $1, R11, R11
+	BNE rows
+	SUBS $1, R4, R4
+	BEQ done
+	MOVD R8, R0
+	MOVD R9, R2
+	B plane
+done:
+	RET
+
