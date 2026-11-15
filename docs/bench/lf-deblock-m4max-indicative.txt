@@ -1,0 +1,14 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/go-videodsp/kernels/lf
+cpu: Apple M4 Max
+BenchmarkDeblock/dispatch/normalV-16         	  200000	        35.64 ns/op	 448.88 MB/s
+BenchmarkDeblock/dispatch/strongV-16         	  200000	        36.42 ns/op	 439.30 MB/s
+BenchmarkDeblock/dispatch/normalH-16         	  200000	        24.70 ns/op	 647.82 MB/s
+BenchmarkDeblock/dispatch/strongH-16         	  200000	        15.15 ns/op	1056.28 MB/s
+BenchmarkDeblock/portable/normalV-16         	  200000	       289.2 ns/op	  55.32 MB/s
+BenchmarkDeblock/portable/strongV-16         	  200000	        97.56 ns/op	 164.00 MB/s
+BenchmarkDeblock/portable/normalH-16         	  200000	       125.8 ns/op	 127.19 MB/s
+BenchmarkDeblock/portable/strongH-16         	  200000	        76.28 ns/op	 209.75 MB/s
+PASS
+ok  	github.com/go-videodsp/kernels/lf	2.280s

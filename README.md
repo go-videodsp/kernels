@@ -58,6 +58,22 @@ The 4x4 gain is small: the call (bounds proof plus dispatch) costs about as
 much as the work. Callers batch by macroblock, or the next step takes the
 whole partition. Raw output in [docs/bench](docs/bench).
 
+**Luma deblocking (clauses 8.7.2.2 to 8.7.2.4).** `lf.DeblockLumaV`/`H`
+(bS 1..3, one strength per group of four lines) and `DeblockLumaIntraV`/`H`
+(bS 4) filter one 16-line edge per call from `indexA`/`indexB`
+(Equations 8-454, 8-455); `Alpha`, `Beta` and `TC0` expose Tables 8-16 and
+8-17. A group with bS 0, or alpha or beta 0, costs nothing. Footprint: eight
+samples p3..q3 across the edge on every line. NEON, M4 Max, one core, ns per
+edge (NEON / portable Go), flat plane (every line runs the whole formula),
+load 30, indicative:
+
+| Edge | normal (bS 1..3) | strong (bS 4) |
+|---|---|---|
+| vertical | 36 / 289 | 36 / 98 |
+| horizontal | 25 / 126 | 15 / 76 |
+
+Chroma deblocking is the next PR. Raw output in [docs/bench](docs/bench).
+
 No FFmpeg `checkasm h264qpel` column: no checkasm binary is installed and the
 local FFmpeg 9.0.2 clone is a partial tree with no build system.
 
