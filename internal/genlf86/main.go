@@ -467,9 +467,12 @@ var osExit = os.Exit
 // content.
 func files() map[string]string {
 	asm, decl := generate()
+	casm, cdecl := generateChroma()
 	return map[string]string{
 		"lf/deblock_amd64.s":      asm,
 		"lf/deblock_amd64_tab.go": decl,
+		"lf/chroma_amd64.s":       casm,
+		"lf/chroma_amd64_tab.go":  cdecl,
 	}
 }
 
