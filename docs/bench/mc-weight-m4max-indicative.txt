@@ -1,0 +1,34 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/go-videodsp/kernels/mc
+cpu: Apple M4 Max
+BenchmarkWeight/dispatch/uni/16x16-16         	   50000	        23.86 ns/op	10731.12 MB/s
+BenchmarkWeight/dispatch/bi/16x16-16          	   50000	        31.63 ns/op	8092.73 MB/s
+BenchmarkWeight/dispatch/uni/16x8-16          	   50000	        16.39 ns/op	7810.04 MB/s
+BenchmarkWeight/dispatch/bi/16x8-16           	   50000	        21.32 ns/op	6003.52 MB/s
+BenchmarkWeight/dispatch/uni/8x16-16          	   50000	        12.23 ns/op	10464.65 MB/s
+BenchmarkWeight/dispatch/bi/8x16-16           	   50000	        20.54 ns/op	6233.26 MB/s
+BenchmarkWeight/dispatch/uni/8x8-16           	   50000	        11.64 ns/op	5499.07 MB/s
+BenchmarkWeight/dispatch/bi/8x8-16            	   50000	        14.55 ns/op	4397.11 MB/s
+BenchmarkWeight/dispatch/uni/8x4-16           	   50000	        10.54 ns/op	3035.81 MB/s
+BenchmarkWeight/dispatch/bi/8x4-16            	   50000	        11.61 ns/op	2756.05 MB/s
+BenchmarkWeight/dispatch/uni/4x8-16           	   50000	        13.02 ns/op	2457.76 MB/s
+BenchmarkWeight/dispatch/bi/4x8-16            	   50000	        13.01 ns/op	2459.96 MB/s
+BenchmarkWeight/dispatch/uni/4x4-16           	   50000	        10.42 ns/op	1535.26 MB/s
+BenchmarkWeight/dispatch/bi/4x4-16            	   50000	        11.06 ns/op	1446.87 MB/s
+BenchmarkWeight/portable/uni/16x16-16         	   50000	       157.7 ns/op	1622.97 MB/s
+BenchmarkWeight/portable/bi/16x16-16          	   50000	       258.3 ns/op	 991.11 MB/s
+BenchmarkWeight/portable/uni/16x8-16          	   50000	        92.48 ns/op	1384.15 MB/s
+BenchmarkWeight/portable/bi/16x8-16           	   50000	       128.6 ns/op	 995.47 MB/s
+BenchmarkWeight/portable/uni/8x16-16          	   50000	        89.17 ns/op	1435.49 MB/s
+BenchmarkWeight/portable/bi/8x16-16           	   50000	       126.5 ns/op	1011.59 MB/s
+BenchmarkWeight/portable/uni/8x8-16           	   50000	        48.33 ns/op	1324.14 MB/s
+BenchmarkWeight/portable/bi/8x8-16            	   50000	        56.29 ns/op	1136.95 MB/s
+BenchmarkWeight/portable/uni/8x4-16           	   50000	        20.99 ns/op	1524.78 MB/s
+BenchmarkWeight/portable/bi/8x4-16            	   50000	        29.12 ns/op	1099.06 MB/s
+BenchmarkWeight/portable/uni/4x8-16           	   50000	        22.74 ns/op	1407.42 MB/s
+BenchmarkWeight/portable/bi/4x8-16            	   50000	        30.32 ns/op	1055.26 MB/s
+BenchmarkWeight/portable/uni/4x4-16           	   50000	        12.53 ns/op	1276.85 MB/s
+BenchmarkWeight/portable/bi/4x4-16            	   50000	        15.19 ns/op	1053.61 MB/s
+PASS
+ok  	github.com/go-videodsp/kernels/mc	0.729s

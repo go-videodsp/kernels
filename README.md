@@ -40,6 +40,24 @@ in [docs/bench](docs/bench).
 | 8x8 | 8.6 / 177 | 12 / 213 | 21 / 356 | 17 / 342 |
 | 4x4 | 7.1 / 57 | 9.4 / 66 | 18 / 134 | 12 / 141 |
 
+**Weighted prediction (clause 8.4.2.3.2).** `mc.WeightUni` applies the
+single-list form (Equations 8-274, 8-275) in place, `mc.WeightBi` the two-list
+form (8-276) into the first prediction. With `w0 = w1 = 2^logWD` and a zero
+rounded offset (the implicit (32, 32) case among them) `WeightBi` runs the
+fused averaging kernel of `AvgLuma`, as the design asks; that is
+bit-identical to 8-273 by the equation. NEON, one core, ns per block (NEON /
+portable Go), load 26, indicative:
+
+| Block | uni | bi |
+|---|---|---|
+| 16x16 | 24 / 158 | 32 / 258 |
+| 8x8 | 11.6 / 48 | 14.6 / 56 |
+| 4x4 | 10.4 / 12.5 | 11.1 / 15.2 |
+
+The 4x4 gain is small: the call (bounds proof plus dispatch) costs about as
+much as the work. Callers batch by macroblock, or the next step takes the
+whole partition. Raw output in [docs/bench](docs/bench).
+
 No FFmpeg `checkasm h264qpel` column: no checkasm binary is installed and the
 local FFmpeg 9.0.2 clone is a partial tree with no build system.
 
