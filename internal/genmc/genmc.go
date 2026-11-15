@@ -363,10 +363,20 @@ func generate() (asm, tab string) {
 
 var osExit = os.Exit
 
-func run(dir string) error {
+// files maps each generated file, relative to the repository root, to its
+// content.
+func files() map[string]string {
 	asm, tab := generate()
-	for name, body := range map[string]string{"luma_arm64.s": asm, "luma_arm64_tab.go": tab} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+	return map[string]string{
+		"mc/luma_arm64.s":      asm,
+		"mc/luma_arm64_tab.go": tab,
+		"lf/deblock_arm64.s":   generateDeblock(),
+	}
+}
+
+func run(root string) error {
+	for name, body := range files() {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o644); err != nil {
 			return err
 		}
 	}
@@ -374,7 +384,7 @@ func run(dir string) error {
 }
 
 func main() {
-	dir := "mc"
+	dir := "."
 	if len(os.Args) > 1 {
 		dir = os.Args[1]
 	}
