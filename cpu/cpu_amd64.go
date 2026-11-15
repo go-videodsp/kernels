@@ -15,17 +15,29 @@ var HasAVX512 bool
 func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 func xgetbv0() (eax, edx uint32)
 
+const (
+	osxsaveBit = 1 << 27 // CPUID.1:ECX
+	avxBit     = 1 << 28 // CPUID.1:ECX
+	avx512Bits = 1<<16 | 1<<17 | 1<<30 | 1<<31
+)
+
+// decide turns the CPUID and XCR0 words into the two answers. xcr0 is only
+// meaningful when OSXSAVE is set; decide ignores it otherwise.
+func decide(maxLeaf, c1, b7, xcr0 uint32) (avx2, avx512 bool) {
+	osAVX := c1&osxsaveBit != 0 && c1&avxBit != 0 && xcr0&0x6 == 0x6
+	osAVX512 := osAVX && xcr0&0xe0 == 0xe0
+	has7 := maxLeaf >= 7
+	return has7 && osAVX && b7&(1<<5) != 0, has7 && osAVX512 && b7&avx512Bits == avx512Bits
+}
+
 func init() {
 	maxLeaf, _, _, _ := cpuid(0, 0)
 	_, _, c1, _ := cpuid(1, 0)
-	xcr0, _ := xgetbv0()
-	const osxsave, avx = 1 << 27, 1 << 28
-	osAVX := c1&osxsave != 0 && c1&avx != 0 && xcr0&0x6 == 0x6
-	osAVX512 := osAVX && xcr0&0xe0 == 0xe0
+	var xcr0 uint32
+	// XGETBV raises #UD when OSXSAVE is clear: read XCR0 only after checking it.
+	if c1&osxsaveBit != 0 {
+		xcr0, _ = xgetbv0()
+	}
 	_, b7, _, _ := cpuid(7, 0)
-	has7 := maxLeaf >= 7
-	HasAVX2 = has7 && osAVX && b7&(1<<5) != 0
-	// F is bit 16, DQ 17, BW 30, VL 31.
-	const avx512 = 1<<16 | 1<<17 | 1<<30 | 1<<31
-	HasAVX512 = has7 && osAVX512 && b7&avx512 == avx512
+	HasAVX2, HasAVX512 = decide(maxLeaf, c1, b7, xcr0)
 }
