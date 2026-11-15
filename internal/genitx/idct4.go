@@ -82,6 +82,7 @@ func (g *gen) amd64x4() string {
 	for r := 0; r < 4; r++ {
 		g.f("VMOVDQU %d(R9), X%d", 16*r, 11+r)
 	}
+	g.f("MOVQ $16, R14") // the loop runs at most sixteen times, whatever the mask
 	g.f("VPXOR X15, X15, X15")
 	g.f("TESTQ AX, AX")
 	g.f("JZ loop")
@@ -90,6 +91,8 @@ func (g *gen) amd64x4() string {
 	g.l("loop:")
 	g.f("TESTQ CX, CX")
 	g.f("JZ done")
+	g.f("DECQ R14")
+	g.f("JLT done")
 	g.f("BSFQ CX, BX")
 	g.f("LEAQ -1(CX), R10")
 	g.f("ANDQ R10, CX")
@@ -234,12 +237,15 @@ func (g *gen) arm64x4() string {
 	g.f("MOVD $32, R10")
 	g.f("VDUP R10, V26.S4")
 	g.f("VLD1 (R1), [V16.S4, V17.S4, V18.S4, V19.S4]")
+	g.f("MOVD $16, R19") // the loop runs at most sixteen times, whatever the mask
 	g.f("VEOR V27.B16, V27.B16, V27.B16")
 	g.f("CBZ R9, loop")
 	g.f("MOVW $-1, R10")
 	g.f("VMOV R10, V27.S[0]")
 	g.l("loop:")
 	g.f("CBZ R7, done")
+	g.f("SUBS $1, R19, R19")
+	g.f("BMI done")
 	g.f("RBIT R7, R10")
 	g.f("CLZ R10, R10")
 	g.f("SUB $1, R7, R11")
