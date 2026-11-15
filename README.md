@@ -39,7 +39,7 @@ less; where a file shows more, the table says so.
 | Family | AVX2 vs portable Go (ns) | AVX2 vs FFmpeg 6.1.1 | Raw files (load) |
 |---|---|---|---|
 | Luma quarter-sample, 16x16 put, G / b / j / e | 17 / 32 / 58 / 54 vs 796 / 1105 / 1896 / 1892 | 1.3 to 2.3 times faster per macroblock (frame sweep vs FFmpeg decoder time), 16 positions | [mc-luma-zen4-avx2.txt](docs/bench/mc-luma-zen4-avx2.txt) (0.76), [mc-luma-frame-zen4-avx2.txt](docs/bench/mc-luma-frame-zen4-avx2.txt) (0.67 to 0.72) |
-| Weighted prediction, 16x16 uni / bi | 11.4 / 21.4 vs 205 / 275 | uni: **about 13 % slower** at this tag (11.8 vs 10.4 ns per macroblock); the call-overhead fix in go-videodsp/kernels#15 measures 9.5 ns | [mc-weight-zen4-avx2.txt](docs/bench/mc-weight-zen4-avx2.txt) (0.22), [mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt) (0.72) |
+| Weighted prediction, 16x16 uni / bi | 11.4 / 21.4 vs 205 / 275 | uni: **about 13 % slower** at this tag (11.8 vs 10.4 ns per macroblock); the overflow-safe gate of the call-overhead PR measures 12.2 ns: still open | [mc-weight-zen4-avx2.txt](docs/bench/mc-weight-zen4-avx2.txt) (0.22), [mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt) (0.72) |
 | Luma deblocking, edge, V / H normal | 18 / 13 vs 88 / 87 | see below | [lf-zen4-avx2.txt](docs/bench/lf-zen4-avx2.txt) (**3.50** and **1.73**: above the rule, indicative) |
 | Chroma deblocking, edge, V / H normal | 12 / 12 vs 24 / 24 | see below | same file |
 | Luma + chroma, all edges of a macroblock | 206 ns per macroblock | 1.4 times faster, indicative | [lf-frame-zen4-avx2.txt](docs/bench/lf-frame-zen4-avx2.txt) (0.72), [ffmpeg-stages-zen4.txt](docs/bench/ffmpeg-stages-zen4.txt) |
@@ -214,18 +214,22 @@ block (AVX2 / portable Go), L1-resident, host load 0.7 to 2.7 (raw output in
 
 Frame sweep (16x16 over a 1920x1088 picture, ns per macroblock,
 [mc-weight-frame-zen4-avx2.txt](docs/bench/mc-weight-frame-zen4-avx2.txt)):
-uni 11.8 before and **9.5** after the call-overhead fix below, bi 25.4 before
-and 22.0 after
+uni 11.8 and bi 25.4 with the checks as released. A gate with an int64 product
+measured uni 9.5 and bi 22.0
 ([mc-weight-frame-gate-zen4-avx2.txt](docs/bench/mc-weight-frame-gate-zen4-avx2.txt),
-load 0.54 to 0.61). FFmpeg 6.1.1 spends 9.8 to 10.4 ns per macroblock on
-explicit luma weighting (synthetic stream, method in the FFmpeg paragraph above;
-its figure includes its own per-macroblock overhead and is an upper bound on
-its kernel time), so uni 16x16 is now on par with it, no longer 13 % behind.
-The 4 ns that the public call cost was two non-inlined check calls: the gate is
-now one inlinable expression per block (`blockFits`, `weightOK`) and the
-detailed checks, with their messages, run only on the refusal path; a test
-proves the gate accepts exactly what the checks accept. An AVX-512 form
-(`VPMOVUSWB` saves the pack and the lane fix-up) was not attempted.
+load 0.54 to 0.61), but that product is the arithmetic that wrapped (v0.3.1
+fixes it) and was dropped. The gate that is safe, `blockLast` on
+`internal/bounds.Window` (no product of caller values), measures uni **12.2**
+and bi 25.4
+([mc-weight-frame-gate-window-zen4-avx2.txt](docs/bench/mc-weight-frame-gate-window-zen4-avx2.txt),
+load 0.96): no faster than the released checks. FFmpeg 6.1.1 spends 9.8 to
+10.4 ns per macroblock on explicit luma weighting (an upper bound on its kernel
+time), so uni 16x16 stays about 15 to 20 % behind it: an open defect. The
+kernel alone is about 7.5 ns; what remains is the call (bounds proof, argument
+checks, dispatch), and the way to recover it without an unproved product is a
+whole-macroblock entry that proves the footprint once for several blocks.
+An AVX-512 form (`VPMOVUSWB` saves the pack and the lane fix-up) was not
+attempted.
 
 Luma deblocking, ns per 16-line edge, flat plane (every line runs the whole
 formula), load 30:

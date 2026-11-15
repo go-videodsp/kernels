@@ -2,7 +2,6 @@ package mc
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/go-videodsp/kernels/internal/bounds"
 )
@@ -54,12 +53,11 @@ func WeightUni(dst []byte, off, stride, w, h, weight, offset, logWD int) {
 // blocks whose rows interleave in one plane are refused even if no sample is
 // shared.
 func WeightBi(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, w, h, w0, w1, o0, o1, logWD int) {
-	if !(blockFits(len(dst), dstOff, dstStride, w, h) && blockFits(len(src), srcOff, srcStride, w, h) &&
-		weightOK(logWD, w0, o0) && weightOK(logWD, w1, o1)) {
+	dLast, dOK := blockLast(len(dst), dstOff, dstStride, w, h)
+	sLast, sOK := blockLast(len(src), srcOff, srcStride, w, h)
+	if !(dOK && sOK && weightOK(logWD, w0, o0) && weightOK(logWD, w1, o1)) {
 		refuseBi(len(dst), dstOff, dstStride, len(src), srcOff, srcStride, w, h, w0, w1, o0, o1, logWD)
 	}
-	dLast := dstOff + (h-1)*dstStride + w - 1 // the gate proved the blocks fit
-	sLast := srcOff + (h-1)*srcStride + w - 1
 	if overlaps(dst, dstOff, dLast, src, srcOff, sLast) {
 		panic("mc: destination and source blocks share memory")
 	}
@@ -76,26 +74,22 @@ func WeightBi(dst []byte, dstOff, dstStride int, src []byte, srcOff, srcStride, 
 // 16x16 block, the larger part of the cost of WeightUni). A call they refuse
 // goes to refuseUni, which runs the full checks and panics with their messages.
 //
-// The arithmetic cannot wrap: for a slice of at most safeLen bytes the stride is
-// first compared with the length (a stride above it is refused with no product),
-// so the product with at most 15 rows is below 15*safeLen; a longer slice (a
-// plane of more than 2^26 bytes on a 32-bit target) takes bounds.Window, whose
-// products are checked with bits.Mul64. An int64 product here was the defect of
-// the security fix before it.
+// No product of caller values is computed here: the footprint is
+// bounds.Window, whose only product is bits.Mul64 with a refusal on a high word
+// (an int64 product in this gate would bring back the wrap fixed in v0.3.1).
 func blockFits(n, off, stride, w, h int) bool {
-	if !validSize(w, h) || stride < w {
-		return false
-	}
-	if n <= safeLen {
-		return uint(off) < uint(n) && stride <= n && off+(h-1)*stride+w-1 < n
-	}
-	_, _, ok := bounds.Window(n, off, stride, 0, h-1, 0, w-1)
+	_, ok := blockLast(n, off, stride, w, h)
 	return ok
 }
 
-// safeLen bounds the slice length for which blockFits multiplies directly:
-// (h-1)*stride <= 15*n and off + 15*n + 15 stay below MaxInt.
-const safeLen = math.MaxInt / 32
+// blockLast is blockFits that also returns the index of the block's last sample.
+func blockLast(n, off, stride, w, h int) (int, bool) {
+	if !validSize(w, h) || stride < w {
+		return 0, false
+	}
+	_, last, ok := bounds.Window(n, off, stride, 0, h-1, 0, w-1)
+	return last, ok
+}
 
 func weightOK(logWD, weight, offset int) bool {
 	return uint(logWD) <= 7 && uint(weight+128) <= 256 && uint(offset+128) <= 255

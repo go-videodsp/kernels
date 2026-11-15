@@ -57,6 +57,37 @@ func TestFastGateEqualsExactOracle(t *testing.T) {
 	}
 }
 
+// The hostile values of the security fix, on the inner gate itself: a stride or
+// an offset of MaxInt/2+1 (1<<62 on 64-bit), MaxInt or -1 is refused whatever
+// the slice length, and an accepted block's last index is the exact one.
+func TestBlockLastHostileAndExact(t *testing.T) {
+	for _, v := range []int{math.MaxInt/2 + 1, math.MaxInt, math.MaxInt - 1, -1, math.MinInt} {
+		for _, sz := range sizes {
+			w, h := sz[0], sz[1]
+			for _, n := range []int{64, 1 << 16, math.MaxInt} {
+				if _, ok := blockLast(n, 0, v, w, h); ok && boundstest.Fits(n, 0, v, 0, h-1, 0, w-1) == false {
+					t.Errorf("stride %d n=%d %dx%d accepted", v, n, w, h)
+				}
+				if v < 0 || v > n {
+					if _, ok := blockLast(n, 0, v, w, h); ok {
+						t.Errorf("stride %d n=%d %dx%d accepted though it cannot fit", v, n, w, h)
+					}
+				}
+				if _, ok := blockLast(n, v, 16, w, h); ok && !boundstest.Fits(n, v, 16, 0, h-1, 0, w-1) {
+					t.Errorf("offset %d n=%d %dx%d accepted", v, n, w, h)
+				}
+			}
+		}
+	}
+	for _, sz := range sizes {
+		w, h := sz[0], sz[1]
+		last, ok := blockLast(1000, 10, 40, w, h)
+		if !ok || last != 10+(h-1)*40+w-1 {
+			t.Errorf("%dx%d: last %d ok %v", w, h, last, ok)
+		}
+	}
+}
+
 // A call the gate refuses always panics, and the refusal helpers panic even
 // when the detailed checks find nothing (a disagreement is still a refusal).
 func TestRefuseAlwaysPanics(t *testing.T) {
