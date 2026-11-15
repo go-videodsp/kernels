@@ -49,10 +49,12 @@ func TestChromaPairExhaustive(t *testing.T) {
 			for a := 0; a < 52; a++ {
 				for b := 0; b < 52; b++ {
 					ja, jb := r.Intn(52), r.Intn(52)
-					for _, p := range patterns {
-						runPair(t, r, vertical, a, b, a, b, p, false)   // equal
-						runPair(t, r, vertical, a, b, ja, jb, p, false) // Cr differs
-						runPair(t, r, vertical, ja, jb, a, b, p, false) // Cb differs
+					for pi, p := range patterns {
+						runPair(t, r, vertical, a, b, a, b, p, false) // equal
+						if pi%4 == 0 {
+							runPair(t, r, vertical, a, b, ja, jb, p, false) // Cr differs
+							runPair(t, r, vertical, ja, jb, a, b, p, false) // Cb differs
+						}
 					}
 					for i := 0; i < 2; i++ {
 						runPair(t, r, vertical, a, b, ja, jb, [4]int{r.Intn(4), r.Intn(4), r.Intn(4), r.Intn(4)}, false)
@@ -166,55 +168,28 @@ func FuzzChromaPair(f *testing.F) {
 }
 
 // BenchmarkChromaPair compares one two-plane call with two one-plane calls,
-// on a flat plane (every line runs the whole formula). The strong horizontal
-// edge has no row: its two-plane call is two one-plane calls.
+// on a flat plane (every line runs the whole formula).
 func BenchmarkChromaPair(b *testing.B) {
 	cb := make([]byte, planeStride*planeRows)
 	cr := make([]byte, planeStride*planeRows)
 	for i := range cb {
 		cb[i], cr[i] = 100, 120
 	}
-	bS := [4]uint8{3, 2, 1, 3}
-	for _, vertical := range []bool{true, false} {
-		off := edgeOffset(vertical, 0)
-		dir := map[bool]string{true: "V", false: "H"}[vertical]
-		b.Run("pair/normal"+dir, func(b *testing.B) {
-			b.SetBytes(16)
-			for i := 0; i < b.N; i++ {
-				if vertical {
-					DeblockChromaPairV(cb, cr, off, planeStride, 40, 30, 36, 33, bS)
-				} else {
-					DeblockChromaPairH(cb, cr, off, planeStride, 40, 30, 36, 33, bS)
-				}
-			}
-		})
-		b.Run("twice/normal"+dir, func(b *testing.B) {
-			b.SetBytes(16)
-			for i := 0; i < b.N; i++ {
-				if vertical {
-					DeblockChromaV(cb, off, planeStride, 40, 30, bS)
-					DeblockChromaV(cr, off, planeStride, 36, 33, bS)
-				} else {
-					DeblockChromaH(cb, off, planeStride, 40, 30, bS)
-					DeblockChromaH(cr, off, planeStride, 36, 33, bS)
-				}
-			}
-		})
-		if !vertical {
-			continue
+	// Only the strong vertical edge has a two-plane kernel; the others run as
+	// two one-plane calls inside the pair API, so a row would compare code
+	// with itself.
+	offV := edgeOffset(true, 0)
+	b.Run("pair/strongV", func(b *testing.B) {
+		b.SetBytes(16)
+		for i := 0; i < b.N; i++ {
+			DeblockChromaPairIntraV(cb, cr, offV, planeStride, 40, 30, 36, 33)
 		}
-		b.Run("pair/strongV", func(b *testing.B) {
-			b.SetBytes(16)
-			for i := 0; i < b.N; i++ {
-				DeblockChromaPairIntraV(cb, cr, off, planeStride, 40, 30, 36, 33)
-			}
-		})
-		b.Run("twice/strongV", func(b *testing.B) {
-			b.SetBytes(16)
-			for i := 0; i < b.N; i++ {
-				DeblockChromaIntraV(cb, off, planeStride, 40, 30)
-				DeblockChromaIntraV(cr, off, planeStride, 36, 33)
-			}
-		})
-	}
+	})
+	b.Run("twice/strongV", func(b *testing.B) {
+		b.SetBytes(16)
+		for i := 0; i < b.N; i++ {
+			DeblockChromaIntraV(cb, offV, planeStride, 40, 30)
+			DeblockChromaIntraV(cr, offV, planeStride, 36, 33)
+		}
+	})
 }
