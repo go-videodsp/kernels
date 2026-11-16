@@ -96,6 +96,13 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 	saoEdge8NEON(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, offA, offB, &p[0])
 }
 
+//go:noescape
+func averageNEON(dst *uint16, dstStride int, a *uint16, aStride int, b *uint16, bStride, w, h int)
+
+func averageDispatch(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
+	averageNEON(&dst[dstOff], dstStride, &a[aOff], aStride, &b[bOff], bStride, w, h)
+}
+
 func weightUniDispatch(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
 	weightUniNEON[log2Wd](&dst[dstOff], dstStride, &p[pOff], pStride, w, h, &q[0])
 }

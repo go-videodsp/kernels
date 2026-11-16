@@ -859,3 +859,69 @@ next:
 	VZEROUPPER
 	RET
 
+// func averageAVX2(dst *uint16, dstStride int, a *uint16, aStride int, b *uint16, bStride, w, h int)
+TEXT ·averageAVX2(SB), NOSPLIT, $0-64
+	MOVQ dst+0(FP), DI
+	MOVQ dstStride+8(FP), R8
+	MOVQ a+16(FP), SI
+	MOVQ aStride+24(FP), R9
+	MOVQ b+32(FP), BX
+	MOVQ bStride+40(FP), R10
+	MOVQ w+48(FP), CX
+	MOVQ h+56(FP), DX
+	SHLQ $1, R8
+	SHLQ $1, R9
+	SHLQ $1, R10
+rows:
+	MOVQ SI, R12
+	MOVQ BX, R13
+	MOVQ DI, AX
+	MOVQ CX, R11
+cols16:
+	CMPQ R11, $16
+	JLT tail8
+	VMOVDQU (R12), Y0
+	VPAVGW (R13), Y0, Y0
+	VMOVDQU Y0, (AX)
+	ADDQ $32, R12
+	ADDQ $32, R13
+	ADDQ $32, AX
+	SUBQ $16, R11
+	JMP cols16
+tail8:
+	CMPQ R11, $8
+	JLT tail4
+	VMOVDQU (R12), X0
+	VPAVGW (R13), X0, X0
+	VMOVDQU X0, (AX)
+	ADDQ $16, R12
+	ADDQ $16, R13
+	ADDQ $16, AX
+	SUBQ $8, R11
+tail4:
+	CMPQ R11, $4
+	JLT tail2
+	VMOVQ (R12), X0
+	VMOVQ (R13), X1
+	VPAVGW X1, X0, X0
+	VMOVQ X0, (AX)
+	ADDQ $8, R12
+	ADDQ $8, R13
+	ADDQ $8, AX
+	SUBQ $4, R11
+tail2:
+	TESTQ R11, R11
+	JZ next
+	VMOVD (R12), X0
+	VMOVD (R13), X1
+	VPAVGW X1, X0, X0
+	VMOVD X0, (AX)
+next:
+	ADDQ R9, SI
+	ADDQ R10, BX
+	ADDQ R8, DI
+	DECQ DX
+	JNZ rows
+	VZEROUPPER
+	RET
+
