@@ -1,0 +1,13 @@
+cpu: AMD Ryzen 9 7950X 16-Core Processor
+BenchmarkSAO/Band/16x16/kernel         	37964204	        30.03 ns/op
+BenchmarkSAO/Band/16x16/reference      	 2106602	       559.5 ns/op
+BenchmarkSAO/Edge/16x16/kernel         	34238960	        35.18 ns/op
+BenchmarkSAO/Edge/16x16/reference      	 3524343	       340.3 ns/op
+BenchmarkSAO/Band/32x32/kernel         	17333865	        68.67 ns/op
+BenchmarkSAO/Band/32x32/reference      	  567111	      2215 ns/op
+BenchmarkSAO/Edge/32x32/kernel         	14186545	        84.87 ns/op
+BenchmarkSAO/Edge/32x32/reference      	  850411	      1392 ns/op
+BenchmarkSAO/Band/64x64/kernel         	 5500158	       217.9 ns/op
+BenchmarkSAO/Band/64x64/reference      	  141733	      8842 ns/op
+BenchmarkSAO/Edge/64x64/kernel         	 4180028	       287.7 ns/op
+BenchmarkSAO/Edge/64x64/reference      	  211534	      5741 ns/op
