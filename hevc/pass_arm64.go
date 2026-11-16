@@ -95,3 +95,11 @@ func saoBandDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, offA, offB int, p *[12]int16) {
 	saoEdge8NEON(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, offA, offB, &p[0])
 }
+
+func weightUniDispatch(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	weightUniNEON[log2Wd](&dst[dstOff], dstStride, &p[pOff], pStride, w, h, &q[0])
+}
+
+func weightBiDispatch(dst []uint16, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	weightBiNEON[log2Wd+1](&dst[dstOff], dstStride, &p0[pOff], &p1[pOff], pStride, w, h, &q[0])
+}

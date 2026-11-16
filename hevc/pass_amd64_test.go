@@ -114,3 +114,31 @@ func TestSAOPortablePathWithoutAVX2(t *testing.T) {
 		}
 	}
 }
+
+// Without AVX2 the weighting kernels run the portable reference.
+func TestWeightPortablePathWithoutAVX2(t *testing.T) {
+	old := useAVX2
+	defer func() { useAVX2 = old }()
+	rng := rand.New(rand.NewSource(14))
+	for _, avx := range []bool{false, true} {
+		useAVX2 = avx && old
+		p0, p1 := randomIntermediates(rng, 16*8, 0), randomIntermediates(rng, 16*8, 0)
+		got := make([]uint16, 16*8)
+		if err := TryWeightUni(got, 0, 16, p0, 0, 16, 16, 8, 10, 4, 3, 2); err != nil {
+			t.Fatal(err)
+		}
+		for i := range got {
+			if want := modelUni(int64(p0[i]), 3, 2, 4, 10); got[i] != want {
+				t.Fatalf("avx2=%v uni: element %d is %d, want %d", useAVX2, i, got[i], want)
+			}
+		}
+		if err := TryWeightBi(got, 0, 16, p0, p1, 0, 16, 16, 8, 10, 4, 3, 5, 2, -1); err != nil {
+			t.Fatal(err)
+		}
+		for i := range got {
+			if want := modelBi(int64(p0[i]), int64(p1[i]), 3, 5, 2, -1, 4, 10); got[i] != want {
+				t.Fatalf("avx2=%v bi: element %d is %d, want %d", useAVX2, i, got[i], want)
+			}
+		}
+	}
+}

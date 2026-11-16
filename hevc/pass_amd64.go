@@ -84,3 +84,25 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 	}
 	saoEdgeAVX2(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, offA, offB, &p[0])
 }
+
+//go:noescape
+func weightUniAVX2(dst *uint16, dstStride int, p *int32, pStride, w, h int, q *int32, shift int)
+
+//go:noescape
+func weightBiAVX2(dst *uint16, dstStride int, p *int32, p1 *int32, pStride, w, h int, q *int32, shift int)
+
+func weightUniDispatch(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	if !useAVX2 {
+		weightUniRef(dst, dstOff, dstStride, p, pOff, pStride, w, h, log2Wd, q)
+		return
+	}
+	weightUniAVX2(&dst[dstOff], dstStride, &p[pOff], pStride, w, h, &q[0], int(log2Wd))
+}
+
+func weightBiDispatch(dst []uint16, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	if !useAVX2 {
+		weightBiRef(dst, dstOff, dstStride, p0, p1, pOff, pStride, w, h, log2Wd, q)
+		return
+	}
+	weightBiAVX2(&dst[dstOff], dstStride, &p0[pOff], &p1[pOff], pStride, w, h, &q[0], int(log2Wd)+1)
+}
