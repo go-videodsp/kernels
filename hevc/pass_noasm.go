@@ -45,6 +45,18 @@ func vpassU4Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, s
 	vpassU4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
 }
 
+func hpassW8Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+	hpassW8Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+}
+
+func hpassW4Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	hpassW4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+}
+
+func widenDispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint) {
+	widenRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift)
+}
+
 func idctDispatch(dst, d, g, mat []int32, matStride, n, maxX, maxY int, shift uint) {
 	idctRef(dst, d, g, mat, matStride, n, maxX, maxY, shift)
 }

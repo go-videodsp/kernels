@@ -202,3 +202,45 @@ func TestVPassUPortablePathWithoutAVX2(t *testing.T) {
 		}
 	}
 }
+
+// Without AVX2 the horizontal filters into int32 and the widening copy run the portable reference.
+func TestHPassWAndWidenPortablePathWithoutAVX2(t *testing.T) {
+	old := useAVX2
+	defer func() { useAVX2 = old }()
+	rng := rand.New(rand.NewSource(26))
+	for _, avx := range []bool{false, true} {
+		useAVX2 = avx && old
+		src := randomU16(rng, 8*32, 10, false)
+		got := make([]int32, 16*8)
+		if err := TryHPassW8(got, 0, 16, src, 3, 32, 16, 8, 10, &lumaFilters[1]); err != nil {
+			t.Fatal(err)
+		}
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 16; x++ {
+				if want := modelHW(src, 3+y*32+x, lumaFilters[1][:], 3, 10); got[y*16+x] != want {
+					t.Fatalf("avx2=%v 8 taps: (%d,%d) is %d, want %d", useAVX2, x, y, got[y*16+x], want)
+				}
+			}
+		}
+		if err := TryHPassW4(got, 0, 16, src, 1, 32, 16, 8, 10, &chromaFilters[3]); err != nil {
+			t.Fatal(err)
+		}
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 16; x++ {
+				if want := modelHW(src, 1+y*32+x, chromaFilters[3][:], 1, 10); got[y*16+x] != want {
+					t.Fatalf("avx2=%v 4 taps: (%d,%d) is %d, want %d", useAVX2, x, y, got[y*16+x], want)
+				}
+			}
+		}
+		if err := TryWiden(got, 0, 16, src, 0, 32, 16, 8, 4); err != nil {
+			t.Fatal(err)
+		}
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 16; x++ {
+				if want := int32(src[y*32+x]) << 4; got[y*16+x] != want {
+					t.Fatalf("avx2=%v widen: (%d,%d) is %d, want %d", useAVX2, x, y, got[y*16+x], want)
+				}
+			}
+		}
+	}
+}

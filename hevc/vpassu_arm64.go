@@ -49,3 +49,52 @@ var vpassU4NEON = [5]func(dst *int32, dstStride int, src *uint16, srcStride, w, 
 	3: vpassU4NEON3,
 	4: vpassU4NEON4,
 }
+
+//go:noescape
+func hpassW8NEON0(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW8NEON1(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW8NEON2(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW8NEON3(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW8NEON4(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+var hpassW8NEON = [5]func(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16){
+	0: hpassW8NEON0,
+	1: hpassW8NEON1,
+	2: hpassW8NEON2,
+	3: hpassW8NEON3,
+	4: hpassW8NEON4,
+}
+
+//go:noescape
+func hpassW4NEON0(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW4NEON1(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW4NEON2(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW4NEON3(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+//go:noescape
+func hpassW4NEON4(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16)
+
+var hpassW4NEON = [5]func(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16){
+	0: hpassW4NEON0,
+	1: hpassW4NEON1,
+	2: hpassW4NEON2,
+	3: hpassW4NEON3,
+	4: hpassW4NEON4,
+}
+
+//go:noescape
+func widenNEON(dst *int32, dstStride int, src *uint16, srcStride, w, h, shift int)
