@@ -96,6 +96,29 @@ func saoEdgeRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcSt
 	}
 }
 
+// idctRef is the two stages of the inverse transform in 32 bits: mat[j*matStride + i] is the
+// basis function of frequency j at position i; g is scratch of n*n entries.
+func idctRef(dst, d, g, mat []int32, matStride, n, maxX, maxY int, shift uint) {
+	for x := 0; x <= maxX; x++ {
+		for i := 0; i < n; i++ {
+			var s int32
+			for j := 0; j <= maxY; j++ {
+				s += mat[j*matStride+i] * d[j*n+x]
+			}
+			g[i*n+x] = min(max((s+64)>>7, minCoeff), maxCoeff)
+		}
+	}
+	for y := 0; y < n; y++ {
+		for i := 0; i < n; i++ {
+			var s int32
+			for k := 0; k <= maxX; k++ {
+				s += mat[k*matStride+i] * g[y*n+k]
+			}
+			dst[y*n+i] = (s + 1<<(shift-1)) >> shift
+		}
+	}
+}
+
 // averageRef is (a + b + 1) >> 1 of the text.
 func averageRef(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
 	for y := 0; y < h; y++ {

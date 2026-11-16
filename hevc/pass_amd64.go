@@ -86,6 +86,23 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 }
 
 //go:noescape
+func idctAVX2x8(dst, d, gb, mat *int32, matStride, n, maxX, maxY, shift int)
+
+//go:noescape
+func idctAVX2x4(dst, d, gb, mat *int32, matStride, n, maxX, maxY, shift int)
+
+func idctDispatch(dst, d, g, mat []int32, matStride, n, maxX, maxY int, shift uint) {
+	switch {
+	case !useAVX2:
+		idctRef(dst, d, g, mat, matStride, n, maxX, maxY, shift)
+	case n == 4:
+		idctAVX2x4(&dst[0], &d[0], &g[0], &mat[0], matStride, n, maxX, maxY, int(shift))
+	default:
+		idctAVX2x8(&dst[0], &d[0], &g[0], &mat[0], matStride, n, maxX, maxY, int(shift))
+	}
+}
+
+//go:noescape
 func averageAVX2(dst *uint16, dstStride int, a *uint16, aStride int, b *uint16, bStride, w, h int)
 
 func averageDispatch(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
