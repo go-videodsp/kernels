@@ -95,3 +95,23 @@ func saoEdgeRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcSt
 		}
 	}
 }
+
+// weightUniRef and weightBiRef are the weighted prediction of the text in 32-bit arithmetic.
+func weightUniRef(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			v := ((p[pOff+y*pStride+x]*q[0] + q[1]) >> log2Wd) + q[2]
+			dst[dstOff+y*dstStride+x] = uint16(min(max(v, 0), q[3]))
+		}
+	}
+}
+
+func weightBiRef(dst []uint16, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			i := pOff + y*pStride + x
+			v := (p0[i]*q[0] + p1[i]*q[1] + q[2]) >> (log2Wd + 1)
+			dst[dstOff+y*dstStride+x] = uint16(min(max(v, 0), q[3]))
+		}
+	}
+}
