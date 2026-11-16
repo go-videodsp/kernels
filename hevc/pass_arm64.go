@@ -104,6 +104,18 @@ func vpassU4Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, s
 	vpassU4NEON[shift](&dst[dstOff], dstStride, &src[srcOff-chromaBefore*srcStride], srcStride, w, h, &c[0])
 }
 
+func hpassW8Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+	hpassW8NEON[shift](&dst[dstOff], dstStride, &src[srcOff-before], srcStride, w, h, &c[0])
+}
+
+func hpassW4Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	hpassW4NEON[shift](&dst[dstOff], dstStride, &src[srcOff-chromaBefore], srcStride, w, h, &c[0])
+}
+
+func widenDispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint) {
+	widenNEON(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, int(shift))
+}
+
 //go:noescape
 func idctNEON(dst, d, gb, mat *int32, matStride, n, maxX, maxY, shift int)
 

@@ -76,6 +76,38 @@ func vpassU4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStr
 	}
 }
 
+func hpassW8Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			var s int32
+			for k := 0; k < taps; k++ {
+				s += int32(c[k]) * int32(src[srcOff+y*srcStride+x+k-before])
+			}
+			dst[dstOff+y*dstStride+x] = s >> shift
+		}
+	}
+}
+
+func hpassW4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			var s int32
+			for k := 0; k < chromaTaps; k++ {
+				s += int32(c[k]) * int32(src[srcOff+y*srcStride+x+k-chromaBefore])
+			}
+			dst[dstOff+y*dstStride+x] = s >> shift
+		}
+	}
+}
+
+func widenRef(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			dst[dstOff+y*dstStride+x] = int32(src[srcOff+y*srcStride+x]) << shift
+		}
+	}
+}
+
 func clip16(v, hi int) int { return min(max(v, 0), hi) }
 
 // saoBandRef is the band offset of the text, one sample at a time.
