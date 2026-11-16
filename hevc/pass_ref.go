@@ -96,6 +96,15 @@ func saoEdgeRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcSt
 	}
 }
 
+// averageRef is (a + b + 1) >> 1 of the text.
+func averageRef(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			dst[dstOff+y*dstStride+x] = uint16((uint32(a[aOff+y*aStride+x]) + uint32(b[bOff+y*bStride+x]) + 1) >> 1)
+		}
+	}
+}
+
 // weightUniRef and weightBiRef are the weighted prediction of the text in 32-bit arithmetic.
 func weightUniRef(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
 	for y := 0; y < h; y++ {

@@ -86,6 +86,17 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 }
 
 //go:noescape
+func averageAVX2(dst *uint16, dstStride int, a *uint16, aStride int, b *uint16, bStride, w, h int)
+
+func averageDispatch(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
+	if !useAVX2 {
+		averageRef(dst, dstOff, dstStride, a, aOff, aStride, b, bOff, bStride, w, h)
+		return
+	}
+	averageAVX2(&dst[dstOff], dstStride, &a[aOff], aStride, &b[bOff], bStride, w, h)
+}
+
+//go:noescape
 func weightUniAVX2(dst *uint16, dstStride int, p *int32, pStride, w, h int, q *int32, shift int)
 
 //go:noescape

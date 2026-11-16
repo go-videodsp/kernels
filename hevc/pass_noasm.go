@@ -37,6 +37,10 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 	saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bd, offA, offB, &off)
 }
 
+func averageDispatch(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
+	averageRef(dst, dstOff, dstStride, a, aOff, aStride, b, bOff, bStride, w, h)
+}
+
 func weightUniDispatch(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
 	weightUniRef(dst, dstOff, dstStride, p, pOff, pStride, w, h, log2Wd, q)
 }

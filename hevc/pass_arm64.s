@@ -3610,3 +3610,61 @@ next:
 	BNE rows
 	RET
 
+// func averageNEON(dst *uint16, dstStride int, a *uint16, aStride int, b *uint16, bStride, w, h int)
+TEXT ·averageNEON(SB), NOSPLIT, $0-64
+	MOVD dst+0(FP), R0
+	MOVD dstStride+8(FP), R1
+	MOVD a+16(FP), R2
+	MOVD aStride+24(FP), R3
+	MOVD b+32(FP), R4
+	MOVD bStride+40(FP), R5
+	MOVD w+48(FP), R6
+	MOVD h+56(FP), R7
+	LSL $1, R1, R1
+	LSL $1, R3, R3
+	LSL $1, R5, R5
+rows:
+	MOVD R2, R8
+	MOVD R4, R9
+	MOVD R0, R10
+	MOVD R6, R11
+cols16:
+	CMP $16, R11
+	BLT tail8
+	VLD1.P 32(R8), [V0.H8, V1.H8]
+	VLD1.P 32(R9), [V2.H8, V3.H8]
+	WORD $0x6e621400 // URHADD V0.8H, V0.8H, V2.8H
+	WORD $0x6e631421 // URHADD V1.8H, V1.8H, V3.8H
+	VST1.P [V0.H8, V1.H8], 32(R10)
+	SUB $16, R11, R11
+	B cols16
+tail8:
+	CMP $8, R11
+	BLT tail4
+	VLD1.P 16(R8), [V0.H8]
+	VLD1.P 16(R9), [V2.H8]
+	WORD $0x6e621400 // URHADD V0.8H, V0.8H, V2.8H
+	VST1.P [V0.H8], 16(R10)
+	SUB $8, R11, R11
+tail4:
+	CMP $4, R11
+	BLT tail2
+	VLD1.P 8(R8), [V0.H4]
+	VLD1.P 8(R9), [V2.H4]
+	WORD $0x2e621400 // URHADD V0.4H, V0.4H, V2.4H
+	VST1.P [V0.H4], 8(R10)
+	SUB $4, R11, R11
+tail2:
+	CBZ R11, next
+	FMOVS (R8), F0
+	FMOVS (R9), F2
+	WORD $0x2e621400 // URHADD V0.4H, V0.4H, V2.4H (two lanes used)
+	FMOVS F0, (R10)
+next:
+	ADD R3, R2, R2
+	ADD R5, R4, R4
+	ADD R1, R0, R0
+	SUBS $1, R7, R7
+	BNE rows
+	RET
+
