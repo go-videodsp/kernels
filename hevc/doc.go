@@ -16,9 +16,12 @@
 //
 // Contract. Samples are below 1 << bitDepth with bitDepth 8 to 12 (the kernels
 // treat them as signed 16-bit numbers, so no sample may exceed 32767, and the
-// results of a pass must fit its output type: with the HEVC filters and these bit
-// depths, HPass8 gives values in -6144..22528, which fit int16). The Try forms
-// check the bit depth, the geometry and the memory; they cannot check the values.
+// results of a pass should fit its output type: with the HEVC filters and these bit
+// depths, HPass8 gives values in -6144..22528, which fit int16). Outside that
+// the three implementations still agree, for samples up to 32767: a sum that does
+// not fit keeps its low 16 bits. The Try forms check the bit depth, the geometry
+// and the memory; they cannot afford to scan the values, so samples above 32767
+// give an unspecified (but memory-safe) result.
 // A refusal is an error and nothing is written; no entry point reads or writes
 // outside the footprint it proved.
 package hevc

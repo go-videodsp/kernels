@@ -26,8 +26,11 @@ Without them the kernels would not be exact, so they are the contract.
   by the immediate shift (one entry point per shift 0 to 4), `VXTN`, `VST1`; a group of
   four for the width's remainder. No sample past the footprint is read.
 * amd64 (`pass_amd64.s`): the same with `VPMOVZXWD`/`VPMOVSXWD` to eight 32-bit lanes,
-  `VPMULLD` by the broadcast coefficient, `VPSRAD` by a count register, `VPACKSSDW`
-  after a lane extract (the values fit, so saturation and truncation agree).
+  `VPMULLD` by the broadcast coefficient, `VPSRAD` by a count register, then a byte
+  shuffle that keeps the low 16 bits of each lane (`VPSHUFB`, `VPERMQ`). Not
+  `VPACKSSDW`: it saturates, and a sum beyond the bound then differs from the
+  reference and from NEON, whose `XTN` truncates (the fuzz corpus seed that caught
+  it ran green on arm64 and red on amd64).
 * Both are written by `internal/genhevc`, not by hand; `go generate ./hevc` rewrites them
   and a test fails if the checked-in files differ.
 

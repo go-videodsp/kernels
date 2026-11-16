@@ -172,6 +172,7 @@ func avxH(e *emitter) {
 	avxPrologue(e, 1, 1)
 	e.f("MOVQ shift+56(FP), R10")
 	e.f("MOVQ R10, X14")
+	e.f("VMOVDQU shufmask<>(SB), Y10")
 	e.label("rows")
 	e.f("MOVQ SI, R12")
 	e.f("MOVQ DI, R13")
@@ -190,8 +191,10 @@ func avxH(e *emitter) {
 		}
 	}
 	e.f("VPSRAD X14, Y8, Y8")
-	e.f("VEXTRACTI128 $1, Y8, X9")
-	e.f("VPACKSSDW X9, X8, X8")
+	// keep the low 16 bits of each 32-bit lane (the truncation the reference and the
+	// NEON kernel do; VPACKSSDW would saturate), then gather the two lanes' words
+	e.f("VPSHUFB Y10, Y8, Y8")
+	e.f("VPERMQ $8, Y8, Y8")
 	e.f("VMOVDQU X8, (R13)")
 	e.f("ADDQ $16, R12")
 	e.f("ADDQ $16, R13")
@@ -211,7 +214,7 @@ func avxH(e *emitter) {
 		}
 	}
 	e.f("VPSRAD X14, X8, X8")
-	e.f("VPACKSSDW X8, X8, X8")
+	e.f("VPSHUFB X10, X8, X8")
 	e.f("VMOVQ X8, (R13)")
 	e.label("next")
 	e.f("ADDQ R9, SI")
@@ -302,6 +305,11 @@ func files() map[string]string {
 	}
 	neonV(&a)
 	x.raw(fmt.Sprintf(header, "amd64"))
+	// the byte shuffle that keeps the low word of each dword: bytes 0 1 4 5 8 9 12 13, the
+	// rest zeroed (bit 7 set), in each 128-bit lane
+	x.raw("DATA shufmask<>+0(SB)/8, $0x0d0c090805040100\nDATA shufmask<>+8(SB)/8, $0x8080808080808080\n" +
+		"DATA shufmask<>+16(SB)/8, $0x0d0c090805040100\nDATA shufmask<>+24(SB)/8, $0x8080808080808080\n" +
+		"GLOBL shufmask<>(SB), RODATA|NOPTR, $32\n\n")
 	avxH(&x)
 	avxV(&x)
 	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String()}

@@ -4,6 +4,12 @@
 
 #include "textflag.h"
 
+DATA shufmask<>+0(SB)/8, $0x0d0c090805040100
+DATA shufmask<>+8(SB)/8, $0x8080808080808080
+DATA shufmask<>+16(SB)/8, $0x0d0c090805040100
+DATA shufmask<>+24(SB)/8, $0x8080808080808080
+GLOBL shufmask<>(SB), RODATA|NOPTR, $32
+
 // func hpass8AVX2(dst *int16, dstStride int, src *uint16, srcStride, w, h int, c *int16, shift int)
 TEXT ·hpass8AVX2(SB), NOSPLIT, $0-64
 	MOVQ dst+0(FP), DI
@@ -41,6 +47,7 @@ TEXT ·hpass8AVX2(SB), NOSPLIT, $0-64
 	VPBROADCASTD X7, Y7
 	MOVQ shift+56(FP), R10
 	MOVQ R10, X14
+	VMOVDQU shufmask<>(SB), Y10
 rows:
 	MOVQ SI, R12
 	MOVQ DI, R13
@@ -82,8 +89,8 @@ cols8:
 	VPMULLD Y7, Y9, Y9
 	VPADDD Y9, Y8, Y8
 	VPSRAD X14, Y8, Y8
-	VEXTRACTI128 $1, Y8, X9
-	VPACKSSDW X9, X8, X8
+	VPSHUFB Y10, Y8, Y8
+	VPERMQ $8, Y8, Y8
 	VMOVDQU X8, (R13)
 	ADDQ $16, R12
 	ADDQ $16, R13
@@ -126,7 +133,7 @@ tail:
 	VPMULLD X7, X9, X9
 	VPADDD X9, X8, X8
 	VPSRAD X14, X8, X8
-	VPACKSSDW X8, X8, X8
+	VPSHUFB X10, X8, X8
 	VMOVQ X8, (R13)
 next:
 	ADDQ R9, SI

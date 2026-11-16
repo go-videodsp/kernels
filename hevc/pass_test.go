@@ -202,3 +202,50 @@ func mustPanic(t *testing.T, what string, f func()) {
 	}()
 	f()
 }
+
+// Beyond the stated bound the three implementations still agree: a sum that does not fit
+// int16 keeps its low 16 bits (the reference's conversion, NEON's XTN, and the AVX2 byte
+// shuffle: not a saturating pack, which gave 32767 where the reference gave 29016 on a
+// seed of the fuzz corpus). Samples up to 32767 are in the domain whatever the bit depth.
+func TestBeyondTheBoundTheResultWrapsLikeTheReference(t *testing.T) {
+	rng := rand.New(rand.NewSource(6))
+	for iter := 0; iter < 3000; iter++ {
+		w, h := 4*(1+rng.Intn(16)), 1+rng.Intn(8)
+		bd := 8 + rng.Intn(5)
+		c := lumaFilters[rng.Intn(3)]
+		stride := w + 7
+		src := make([]uint16, (h-1)*stride+w+7)
+		for i := range src {
+			src[i] = uint16(rng.Intn(32768))
+			if iter%4 == 0 {
+				src[i] = 32767
+			}
+		}
+		got, want := make([]int16, h*w), make([]int16, h*w)
+		if err := TryHPass8(got, 0, w, src, 3, stride, w, h, bd, &c); err != nil {
+			t.Fatal(err)
+		}
+		hpassRef(want, 0, w, src, 3, stride, w, h, uint(bd-8), &c)
+		for i := range got {
+			if got[i] != want[i] {
+				t.Fatalf("iter %d: bit depth %d: element %d is %d, the reference gives %d", iter, bd, i, got[i], want[i])
+			}
+		}
+	}
+	// the seed that failed on amd64: eight bits, samples up to 2040
+	c := lumaFilters[0]
+	src := make([]uint16, 4*14+4)
+	for i := range src {
+		src[i] = uint16(i*37%256) << 3
+	}
+	got, want := make([]int16, 32), make([]int16, 32)
+	if err := TryHPass8(got, 0, 8, src, 3, 14, 8, 4, 8, &c); err != nil {
+		t.Fatal(err)
+	}
+	hpassRef(want, 0, 8, src, 3, 14, 8, 4, 0, &c)
+	for i := range got {
+		if got[i] != want[i] {
+			t.Fatalf("seed: element %d is %d, the reference gives %d", i, got[i], want[i])
+		}
+	}
+}
