@@ -1,0 +1,17 @@
+cpu: AMD Ryzen 9 7950X 16-Core Processor
+BenchmarkIDCT/4x4/dense/kernel         	44107794	        26.93 ns/op
+BenchmarkIDCT/4x4/dense/reference      	11434582	       104.1 ns/op
+BenchmarkIDCT/4x4/sparse/kernel        	50156156	        23.92 ns/op
+BenchmarkIDCT/4x4/sparse/reference     	23466844	        51.17 ns/op
+BenchmarkIDCT/8x8/dense/kernel         	15287566	        78.27 ns/op
+BenchmarkIDCT/8x8/dense/reference      	 1671693	       717.3 ns/op
+BenchmarkIDCT/8x8/sparse/kernel        	16221951	        74.16 ns/op
+BenchmarkIDCT/8x8/sparse/reference     	 2274279	       527.4 ns/op
+BenchmarkIDCT/16x16/dense/kernel       	 3256978	       369.5 ns/op
+BenchmarkIDCT/16x16/dense/reference    	  229946	      5199 ns/op
+BenchmarkIDCT/16x16/sparse/kernel      	 3406555	       352.0 ns/op
+BenchmarkIDCT/16x16/sparse/reference   	  211960	      5613 ns/op
+BenchmarkIDCT/32x32/dense/kernel       	  524824	      2296 ns/op
+BenchmarkIDCT/32x32/dense/reference    	   30604	     39196 ns/op
+BenchmarkIDCT/32x32/sparse/kernel      	 1537112	       781.2 ns/op
+BenchmarkIDCT/32x32/sparse/reference   	  323010	      3709 ns/op
