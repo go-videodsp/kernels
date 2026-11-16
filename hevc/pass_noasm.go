@@ -37,6 +37,14 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 	saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bd, offA, offB, &off)
 }
 
+func vpassU8Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+	vpassU8Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+}
+
+func vpassU4Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	vpassU4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+}
+
 func idctDispatch(dst, d, g, mat []int32, matStride, n, maxX, maxY int, shift uint) {
 	idctRef(dst, d, g, mat, matStride, n, maxX, maxY, shift)
 }

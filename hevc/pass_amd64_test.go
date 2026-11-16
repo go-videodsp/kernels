@@ -174,3 +174,31 @@ func TestAverageAndIDCTPortablePathWithoutAVX2(t *testing.T) {
 		}
 	}
 }
+
+// Without AVX2 the vertical filters over picture samples run the portable reference.
+func TestVPassUPortablePathWithoutAVX2(t *testing.T) {
+	old := useAVX2
+	defer func() { useAVX2 = old }()
+	rng := rand.New(rand.NewSource(25))
+	for _, avx := range []bool{false, true} {
+		useAVX2 = avx && old
+		src := randomU16(rng, 16*16, 10, false)
+		got := make([]int32, 16*8)
+		if err := TryVPassU8(got, 0, 16, src, 3*16, 16, 16, 8, 10, &lumaFilters[1]); err != nil {
+			t.Fatal(err)
+		}
+		for i := range got {
+			if want := modelVU(src, 3*16+i, 16, lumaFilters[1][:], 3, 10); got[i] != want {
+				t.Fatalf("avx2=%v 8 taps: element %d is %d, want %d", useAVX2, i, got[i], want)
+			}
+		}
+		if err := TryVPassU4(got, 0, 16, src, 16, 16, 16, 8, 10, &chromaFilters[3]); err != nil {
+			t.Fatal(err)
+		}
+		for i := range got {
+			if want := modelVU(src, 16+i, 16, chromaFilters[3][:], 1, 10); got[i] != want {
+				t.Fatalf("avx2=%v 4 taps: element %d is %d, want %d", useAVX2, i, got[i], want)
+			}
+		}
+	}
+}

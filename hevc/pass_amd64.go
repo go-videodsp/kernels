@@ -86,6 +86,28 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 }
 
 //go:noescape
+func vpassU8AVX2(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16, shift int)
+
+//go:noescape
+func vpassU4AVX2(dst *int32, dstStride int, src *uint16, srcStride, w, h int, c *int16, shift int)
+
+func vpassU8Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+	if !useAVX2 {
+		vpassU8Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+		return
+	}
+	vpassU8AVX2(&dst[dstOff], dstStride, &src[srcOff-before*srcStride], srcStride, w, h, &c[0], int(shift))
+}
+
+func vpassU4Dispatch(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	if !useAVX2 {
+		vpassU4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+		return
+	}
+	vpassU4AVX2(&dst[dstOff], dstStride, &src[srcOff-chromaBefore*srcStride], srcStride, w, h, &c[0], int(shift))
+}
+
+//go:noescape
 func idctAVX2x8(dst, d, gb, mat *int32, matStride, n, maxX, maxY, shift int)
 
 //go:noescape
