@@ -79,3 +79,38 @@ func TestChromaPortablePathWithoutAVX2(t *testing.T) {
 		}
 	}
 }
+
+// Without AVX2 the SAO kernels run the portable reference.
+func TestSAOPortablePathWithoutAVX2(t *testing.T) {
+	old := useAVX2
+	defer func() { useAVX2 = old }()
+	rng := rand.New(rand.NewSource(12))
+	off := [4]int16{-4, -1, 2, 6}
+	for _, avx := range []bool{false, true} {
+		useAVX2 = avx && old
+		src := randomU16(rng, 24*20, 10, false)
+		got, want := make([]uint16, 16*8), make([]uint16, 16*8)
+		if err := TrySAOBand(got, 0, 16, src, 0, 24, 16, 8, 10, 5, &off); err != nil {
+			t.Fatal(err)
+		}
+		saoBandRef(want, 0, 16, src, 0, 24, 16, 8, 10, 5, &off)
+		for i := range got {
+			if got[i] != want[i] {
+				t.Fatalf("avx2=%v band: element %d is %d, want %d", useAVX2, i, got[i], want[i])
+			}
+		}
+		for i := range got {
+			got[i], want[i] = 0, 0
+		}
+		if err := TrySAOEdge(got, 0, 16, src, 25, 24, 16, 8, 10, 2, &off); err != nil {
+			t.Fatal(err)
+		}
+		a, b := saoEdgeOffsets(2, 24)
+		saoEdgeRef(want, 0, 16, src, 25, 24, 16, 8, 10, a, b, &off)
+		for i := range got {
+			if got[i] != want[i] {
+				t.Fatalf("avx2=%v edge: element %d is %d, want %d", useAVX2, i, got[i], want[i])
+			}
+		}
+	}
+}

@@ -54,3 +54,33 @@ func vpass4Dispatch(dst []int32, dstOff, dstStride int, src []int16, srcOff, src
 	}
 	vpass4AVX2(&dst[dstOff], dstStride, &src[srcOff-chromaBefore*srcStride], srcStride, w, h, &c[0])
 }
+
+//go:noescape
+func saoBandAVX2(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16, shift int)
+
+//go:noescape
+func saoEdgeAVX2(dst *uint16, dstStride int, src *uint16, srcStride, w, h, offA, offB int, p *int16)
+
+func saoBandDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, p *[12]int16) {
+	if !useAVX2 {
+		var off [4]int16
+		copy(off[:], p[:4])
+		saoBandRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, int(shift)+5, int(p[4]), &off)
+		return
+	}
+	saoBandAVX2(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, &p[0], int(shift))
+}
+
+func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, offA, offB int, p *[12]int16) {
+	if !useAVX2 {
+		var off [4]int16
+		copy(off[:], p[:4])
+		bd := 8
+		for 1<<uint(bd)-1 < int(p[8]) {
+			bd++
+		}
+		saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bd, offA, offB, &off)
+		return
+	}
+	saoEdgeAVX2(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, offA, offB, &p[0])
+}

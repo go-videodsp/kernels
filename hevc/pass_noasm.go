@@ -19,3 +19,20 @@ func hpass4Dispatch(dst []int16, dstOff, dstStride int, src []uint16, srcOff, sr
 func vpass4Dispatch(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, w, h int, c *[4]int16) {
 	vpass4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, c)
 }
+
+func saoBandDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, p *[12]int16) {
+	var off [4]int16
+	copy(off[:], p[:4])
+	saoBandRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, int(shift)+5, int(p[4]), &off)
+}
+
+func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, offA, offB int, p *[12]int16) {
+	var off [4]int16
+	copy(off[:], p[:4])
+	hi := int(p[8])
+	bd := 8
+	for 1<<uint(bd)-1 < hi {
+		bd++
+	}
+	saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bd, offA, offB, &off)
+}
