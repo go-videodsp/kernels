@@ -304,6 +304,10 @@ func files() map[string]string {
 		neonH(&a, s)
 	}
 	neonV(&a)
+	for s := 0; s <= 4; s++ {
+		neonPass4(&a, false, s)
+	}
+	neonPass4(&a, true, 0)
 	x.raw(fmt.Sprintf(header, "amd64"))
 	// the byte shuffle that keeps the low word of each dword: bytes 0 1 4 5 8 9 12 13, the
 	// rest zeroed (bit 7 set), in each 128-bit lane
@@ -312,6 +316,8 @@ func files() map[string]string {
 		"GLOBL shufmask<>(SB), RODATA|NOPTR, $32\n\n")
 	avxH(&x)
 	avxV(&x)
+	avxPass4(&x, false)
+	avxPass4(&x, true)
 	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String()}
 }
 
