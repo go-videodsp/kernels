@@ -1,0 +1,17 @@
+cpu: AMD Ryzen 9 7950X 16-Core Processor            
+BenchmarkChromaPasses/HPass4/4x4/kernel         	14903026	        16.14 ns/op
+BenchmarkChromaPasses/HPass4/4x4/reference      	 6440599	        37.25 ns/op
+BenchmarkChromaPasses/VPass4/4x4/kernel         	15809954	        15.23 ns/op
+BenchmarkChromaPasses/VPass4/4x4/reference      	 3997566	        60.04 ns/op
+BenchmarkChromaPasses/HPass4/8x8/kernel         	10244133	        23.40 ns/op
+BenchmarkChromaPasses/HPass4/8x8/reference      	 1615102	       148.6 ns/op
+BenchmarkChromaPasses/VPass4/8x8/kernel         	11605533	        20.74 ns/op
+BenchmarkChromaPasses/VPass4/8x8/reference      	 1000000	       240.8 ns/op
+BenchmarkChromaPasses/HPass4/16x16/kernel       	 5115082	        47.58 ns/op
+BenchmarkChromaPasses/HPass4/16x16/reference    	  416365	       748.2 ns/op
+BenchmarkChromaPasses/VPass4/16x16/kernel       	 3222566	        76.39 ns/op
+BenchmarkChromaPasses/VPass4/16x16/reference    	  163922	      1429 ns/op
+BenchmarkChromaPasses/HPass4/32x32/kernel       	 1000000	       235.6 ns/op
+BenchmarkChromaPasses/HPass4/32x32/reference    	   91904	      2278 ns/op
+BenchmarkChromaPasses/VPass4/32x32/kernel       	 1991410	       120.6 ns/op
+BenchmarkChromaPasses/VPass4/32x32/reference    	   63190	      3779 ns/op

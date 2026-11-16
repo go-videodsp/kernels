@@ -34,6 +34,16 @@ Without them the kernels would not be exact, so they are the contract.
 * Both are written by `internal/genhevc`, not by hand; `go generate ./hevc` rewrites them
   and a test fails if the checked-in files differ.
 
+## The four-tap chroma passes
+
+`HPass4` and `VPass4` are the same two stages for the chroma filter (clause 8.5.3.3.3.3,
+Equations 8-241 to 8-261): taps at offsets -1 to 2 (footprint 1 before and 2 after), the same
+types and shifts, and any even block width from 2 to 64 (the chroma widths of 4:2:0 and
+4:2:2 are half the luma ones, so not multiples of 4). Each kernel runs groups of eight, then
+four, then two columns; the group of two loads and stores exactly 4 bytes (`FMOVS` on NEON,
+`VMOVD` on AVX2), so no sample past the footprint is touched. They are written by the same
+generator (`internal/genhevc/chroma.go`).
+
 ## Checks
 
 Each entry has a `Try` form that proves the footprint with `internal/bounds.Window` (no

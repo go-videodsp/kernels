@@ -20,19 +20,23 @@ func refuse(format string, a ...any) error {
 const (
 	maxBlock = 64
 	taps     = 8
-	before   = 3 // taps before the position
-	after    = 4 // taps after it
+	before   = 3 // luma taps before the position
+	after    = 4 // luma taps after it
+
+	chromaTaps   = 4
+	chromaBefore = 1
+	chromaAfter  = 2
 )
 
-// checkGeometry is what the two passes share: the block size, the strides and the
-// coefficients.
-func checkGeometry(dstStride, srcStride, w, h int, c *[8]int16) error {
+// checkGeometry is what the passes share: the block size (a multiple of unit columns, 4 for
+// luma and 2 for chroma), the strides and the coefficients.
+func checkGeometry(dstStride, srcStride, w, h, unit int, haveC bool) error {
 	switch {
-	case w < 4 || w > maxBlock || w%4 != 0:
-		return refuse("block width %d is not a multiple of 4 from 4 to %d", w, maxBlock)
+	case w < unit || w > maxBlock || w%unit != 0:
+		return refuse("block width %d is not a multiple of %d from %d to %d", w, unit, unit, maxBlock)
 	case h < 1 || h > maxBlock:
 		return refuse("block height %d is not from 1 to %d", h, maxBlock)
-	case c == nil:
+	case !haveC:
 		return refuse("no filter coefficients")
 	case dstStride < w:
 		return refuse("destination stride %d is smaller than the block width %d", dstStride, w)
@@ -52,8 +56,8 @@ func overlaps(aBase unsafe.Pointer, aFirst, aLast, aSize int, bBase unsafe.Point
 	return a0 <= b1 && b0 <= a1
 }
 
-func checkH(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth int, c *[8]int16) error {
-	if err := checkGeometry(dstStride, srcStride, w, h, c); err != nil {
+func checkH(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth, unit, before, after int, haveC bool) error {
+	if err := checkGeometry(dstStride, srcStride, w, h, unit, haveC); err != nil {
 		return err
 	}
 	if bitDepth < 8 || bitDepth > 12 {
@@ -73,8 +77,8 @@ func checkH(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride,
 	return nil
 }
 
-func checkV(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, w, h int, c *[8]int16) error {
-	if err := checkGeometry(dstStride, srcStride, w, h, c); err != nil {
+func checkV(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, w, h, unit, before, after int, haveC bool) error {
+	if err := checkGeometry(dstStride, srcStride, w, h, unit, haveC); err != nil {
 		return err
 	}
 	_, dLast, ok := bounds.Window(len(dst), dstOff, dstStride, 0, h-1, 0, w-1)
@@ -109,7 +113,7 @@ func HPass8(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride,
 
 // TryHPass8 is HPass8 returning the refusal as an error, with nothing written.
 func TryHPass8(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth int, c *[8]int16) error {
-	if err := checkH(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bitDepth, c); err != nil {
+	if err := checkH(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bitDepth, 4, before, after, c != nil); err != nil {
 		return err
 	}
 	hpassDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, uint(bitDepth-8), c)
@@ -132,7 +136,7 @@ func VPass8(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, 
 
 // TryVPass8 is VPass8 returning the refusal as an error, with nothing written.
 func TryVPass8(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, w, h int, c *[8]int16) error {
-	if err := checkV(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, c); err != nil {
+	if err := checkV(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 4, before, after, c != nil); err != nil {
 		return err
 	}
 	vpassDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, c)

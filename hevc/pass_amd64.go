@@ -32,3 +32,25 @@ func vpassDispatch(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcS
 	}
 	vpass8AVX2(&dst[dstOff], dstStride, &src[srcOff-before*srcStride], srcStride, w, h, &c[0])
 }
+
+//go:noescape
+func hpass4AVX2(dst *int16, dstStride int, src *uint16, srcStride, w, h int, c *int16, shift int)
+
+//go:noescape
+func vpass4AVX2(dst *int32, dstStride int, src *int16, srcStride, w, h int, c *int16)
+
+func hpass4Dispatch(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	if !useAVX2 {
+		hpass4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift, c)
+		return
+	}
+	hpass4AVX2(&dst[dstOff], dstStride, &src[srcOff-chromaBefore], srcStride, w, h, &c[0], int(shift))
+}
+
+func vpass4Dispatch(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, w, h int, c *[4]int16) {
+	if !useAVX2 {
+		vpass4Ref(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, c)
+		return
+	}
+	vpass4AVX2(&dst[dstOff], dstStride, &src[srcOff-chromaBefore*srcStride], srcStride, w, h, &c[0])
+}
