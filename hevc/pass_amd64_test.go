@@ -142,3 +142,35 @@ func TestWeightPortablePathWithoutAVX2(t *testing.T) {
 		}
 	}
 }
+
+// Without AVX2 the averaging and the transform kernels run the portable reference.
+func TestAverageAndIDCTPortablePathWithoutAVX2(t *testing.T) {
+	old := useAVX2
+	defer func() { useAVX2 = old }()
+	rng := rand.New(rand.NewSource(24))
+	for _, avx := range []bool{false, true} {
+		useAVX2 = avx && old
+		a, b := randomSamples(rng, 16*8, 2), randomSamples(rng, 16*8, 2)
+		got := make([]uint16, 16*8)
+		if err := TryAverage(got, 0, 16, a, 0, 16, b, 0, 16, 16, 8); err != nil {
+			t.Fatal(err)
+		}
+		for i := range got {
+			if want := modelAverage(a[i], b[i]); got[i] != want {
+				t.Fatalf("avx2=%v average: element %d is %d, want %d", useAVX2, i, got[i], want)
+			}
+		}
+		for _, n := range []int{4, 8} { // the two AVX2 kernels, 4 lanes and 8
+			d := randomCoefficients(rng, n, 1)
+			out := make([]int32, n*n)
+			if err := TryIDCT(out, d, map[int]int{4: 2, 8: 3}[n], 12); err != nil {
+				t.Fatal(err)
+			}
+			for i, w := range modelTransform(d, n, 12, dctEntry(n)) {
+				if out[i] != w {
+					t.Fatalf("avx2=%v idct %dx%d: element %d is %d, want %d", useAVX2, n, n, i, out[i], w)
+				}
+			}
+		}
+	}
+}

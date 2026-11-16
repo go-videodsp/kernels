@@ -319,6 +319,7 @@ func files() map[string]string {
 		neonWeight(&a, true, s)
 	}
 	neonAverage(&a)
+	neonIDCT(&a)
 	x.raw(fmt.Sprintf(header, "amd64"))
 	// the byte shuffle that keeps the low word of each dword: bytes 0 1 4 5 8 9 12 13, the
 	// rest zeroed (bit 7 set), in each 128-bit lane
@@ -334,6 +335,8 @@ func files() map[string]string {
 	avxWeight(&x, false)
 	avxWeight(&x, true)
 	avxAverage(&x)
+	avxIDCT(&x, 8)
+	avxIDCT(&x, 4)
 	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String(), "hevc/weight_arm64.go": neonWeightGo()}
 }
 

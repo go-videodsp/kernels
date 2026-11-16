@@ -37,6 +37,10 @@ func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, 
 	saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, bd, offA, offB, &off)
 }
 
+func idctDispatch(dst, d, g, mat []int32, matStride, n, maxX, maxY int, shift uint) {
+	idctRef(dst, d, g, mat, matStride, n, maxX, maxY, shift)
+}
+
 func averageDispatch(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
 	averageRef(dst, dstOff, dstStride, a, aOff, aStride, b, bOff, bStride, w, h)
 }
