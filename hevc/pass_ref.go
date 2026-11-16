@@ -52,6 +52,30 @@ func vpass4Ref(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStrid
 	}
 }
 
+func vpassU8Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			var s int32
+			for k := 0; k < taps; k++ {
+				s += int32(c[k]) * int32(src[srcOff+(y+k-before)*srcStride+x])
+			}
+			dst[dstOff+y*dstStride+x] = s >> shift
+		}
+	}
+}
+
+func vpassU4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			var s int32
+			for k := 0; k < chromaTaps; k++ {
+				s += int32(c[k]) * int32(src[srcOff+(y+k-chromaBefore)*srcStride+x])
+			}
+			dst[dstOff+y*dstStride+x] = s >> shift
+		}
+	}
+}
+
 func clip16(v, hi int) int { return min(max(v, 0), hi) }
 
 // saoBandRef is the band offset of the text, one sample at a time.
