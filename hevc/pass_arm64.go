@@ -65,3 +65,33 @@ func hpass4Dispatch(dst []int16, dstOff, dstStride int, src []uint16, srcOff, sr
 func vpass4Dispatch(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride, w, h int, c *[4]int16) {
 	vpass4NEON(&dst[dstOff], dstStride, &src[srcOff-chromaBefore*srcStride], srcStride, w, h, &c[0])
 }
+
+//go:noescape
+func saoBand8NEON3(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16)
+
+//go:noescape
+func saoBand8NEON4(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16)
+
+//go:noescape
+func saoBand8NEON5(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16)
+
+//go:noescape
+func saoBand8NEON6(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16)
+
+//go:noescape
+func saoBand8NEON7(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16)
+
+//go:noescape
+func saoEdge8NEON(dst *uint16, dstStride int, src *uint16, srcStride, w, h, offA, offB int, p *int16)
+
+var saoBandNEON = [8]func(dst *uint16, dstStride int, src *uint16, srcStride, w, h int, p *int16){
+	3: saoBand8NEON3, 4: saoBand8NEON4, 5: saoBand8NEON5, 6: saoBand8NEON6, 7: saoBand8NEON7,
+}
+
+func saoBandDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, p *[12]int16) {
+	saoBandNEON[shift](&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, &p[0])
+}
+
+func saoEdgeDispatch(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, offA, offB int, p *[12]int16) {
+	saoEdge8NEON(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, offA, offB, &p[0])
+}
