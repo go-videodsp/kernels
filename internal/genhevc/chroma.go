@@ -17,7 +17,9 @@ func neonPrologue4(e *emitter, dstShift, srcShift int) {
 	e.f("MOVD h+40(FP), R5")
 	e.f("MOVD c+48(FP), R6")
 	e.f("LSL $%d, R1, R1", dstShift)
-	e.f("LSL $%d, R3, R3", srcShift)
+	if srcShift > 0 {
+		e.f("LSL $%d, R3, R3", srcShift)
+	}
 	for k := 0; k < 4; k++ {
 		e.f("VLD1R (R6), [V%d.H8]", 16+k)
 		if k < 3 {
@@ -130,7 +132,9 @@ func avxPrologue4(e *emitter, dstShift, srcShift int) {
 	e.f("MOVQ h+40(FP), DX")
 	e.f("MOVQ c+48(FP), AX")
 	e.f("SHLQ $%d, R8", dstShift)
-	e.f("SHLQ $%d, R9", srcShift)
+	if srcShift > 0 {
+		e.f("SHLQ $%d, R9", srcShift)
+	}
 	for k := 0; k < 4; k++ {
 		e.f("MOVWQSX %d(AX), R10", 2*k)
 		e.f("MOVQ R10, X%d", k)

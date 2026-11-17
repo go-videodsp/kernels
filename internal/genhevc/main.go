@@ -154,7 +154,9 @@ func neonPrologue(e *emitter, dstShift, srcShift int) {
 	e.f("MOVD h+40(FP), R5")
 	e.f("MOVD c+48(FP), R6")
 	e.f("LSL $%d, R1, R1", dstShift)
-	e.f("LSL $%d, R3, R3", srcShift)
+	if srcShift > 0 {
+		e.f("LSL $%d, R3, R3", srcShift)
+	}
 	for k := 0; k < 8; k++ {
 		e.f("VLD1R (R6), [V%d.H8]", 16+k)
 		if k < 7 {
@@ -288,7 +290,9 @@ func avxPrologue(e *emitter, dstShift, srcShift int) {
 	e.f("MOVQ h+40(FP), DX")
 	e.f("MOVQ c+48(FP), AX")
 	e.f("SHLQ $%d, R8", dstShift)
-	e.f("SHLQ $%d, R9", srcShift)
+	if srcShift > 0 {
+		e.f("SHLQ $%d, R9", srcShift)
+	}
 	for k := 0; k < 8; k++ {
 		e.f("MOVWQSX %d(AX), R10", 2*k)
 		e.f("MOVQ R10, X%d", k)
@@ -323,11 +327,17 @@ func files() map[string]string {
 	for _, horiz := range []bool{false, true} {
 		for _, n := range []int{8, 4} {
 			for s := 0; s <= 4; s++ {
-				neonVU(&a, n, s, horiz)
+				neonVU(&a, n, s, horiz, false)
+				neonVU(&a, n, s, horiz, true)
 			}
 		}
 	}
-	neonWiden(&a)
+	neonWiden(&a, false)
+	neonWiden(&a, true)
+	for s := 0; s <= 4; s++ {
+		neonHB(&a, s)
+		neonPass4HB(&a, s)
+	}
 	x.raw(fmt.Sprintf(header, "amd64"))
 	// the byte shuffle that keeps the low word of each dword: bytes 0 1 4 5 8 9 12 13, the
 	// rest zeroed (bit 7 set), in each 128-bit lane
@@ -346,11 +356,16 @@ func files() map[string]string {
 	avxIDCT(&x, 8)
 	avxIDCT(&x, 4)
 	for _, horiz := range []bool{false, true} {
-		avxVU(&x, 8, horiz)
-		avxVU(&x, 4, horiz)
+		avxVU(&x, 8, horiz, false)
+		avxVU(&x, 4, horiz, false)
+		avxVU(&x, 8, horiz, true)
+		avxVU(&x, 4, horiz, true)
 	}
-	avxWiden(&x)
-	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String(), "hevc/weight_arm64.go": neonWeightGo(), "hevc/vpassu_arm64.go": neonVUGo()}
+	avxWiden(&x, false)
+	avxWiden(&x, true)
+	avxHB(&x)
+	avxPass4HB(&x)
+	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String(), "hevc/weight_arm64.go": neonWeightGo(), "hevc/vpassu_arm64.go": neonVUGo(), "hevc/hpassb_arm64.go": neonHBGo()}
 }
 
 var osExit = os.Exit

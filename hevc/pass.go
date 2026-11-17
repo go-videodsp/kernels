@@ -56,7 +56,7 @@ func overlaps(aBase unsafe.Pointer, aFirst, aLast, aSize int, bBase unsafe.Point
 	return a0 <= b1 && b0 <= a1
 }
 
-func checkH(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth, unit, before, after int, haveC bool) error {
+func checkH[S uint8 | uint16](dst []int16, dstOff, dstStride int, src []S, srcOff, srcStride, w, h, bitDepth, unit, before, after int, haveC bool) error {
 	if err := checkGeometry(dstStride, srcStride, w, h, unit, haveC); err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func checkH(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride,
 	if !ok {
 		return refuse("source footprint does not fit: offset %d stride %d size %dx%d length %d", srcOff, srcStride, w, h, len(src))
 	}
-	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 2, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, 2) {
+	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 2, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, int(unsafe.Sizeof(src[0]))) {
 		return refuse("destination block and source footprint share memory")
 	}
 	return nil
