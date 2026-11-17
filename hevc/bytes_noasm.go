@@ -31,3 +31,27 @@ func hpassW4BDispatch(dst []int32, dstOff, dstStride int, src []uint8, srcOff, s
 func widenBDispatch(dst []int32, dstOff, dstStride int, src []uint8, srcOff, srcStride, w, h int, shift uint) {
 	widenRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, shift)
 }
+
+func averageBDispatch(dst []uint8, dstOff, dstStride int, a []uint8, aOff, aStride int, b []uint8, bOff, bStride, w, h int) {
+	averageRef(dst, dstOff, dstStride, a, aOff, aStride, b, bOff, bStride, w, h)
+}
+
+func weightUniBDispatch(dst []uint8, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	weightUniRef(dst, dstOff, dstStride, p, pOff, pStride, w, h, log2Wd, q)
+}
+
+func weightBiBDispatch(dst []uint8, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	weightBiRef(dst, dstOff, dstStride, p0, p1, pOff, pStride, w, h, log2Wd, q)
+}
+
+func saoBandBDispatch(dst []uint8, dstOff, dstStride int, src []uint8, srcOff, srcStride, w, h int, p *[12]int16) {
+	var off [4]int16
+	copy(off[:], p[:4])
+	saoBandRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 8, int(p[4]), &off)
+}
+
+func saoEdgeBDispatch(dst []uint8, dstOff, dstStride int, src []uint8, srcOff, srcStride, w, h, offA, offB int, p *[12]int16) {
+	var off [4]int16
+	copy(off[:], p[:4])
+	saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 8, offA, offB, &off)
+}

@@ -338,6 +338,15 @@ func files() map[string]string {
 		neonHB(&a, s)
 		neonPass4HB(&a, s)
 	}
+	neonAverageB(&a)
+	for s := 2; s <= 13; s++ {
+		neonWeightB(&a, false, s)
+	}
+	for s := 3; s <= 14; s++ {
+		neonWeightB(&a, true, s)
+	}
+	neonSAOBandB(&a)
+	neonSAOEdgeB(&a)
 	x.raw(fmt.Sprintf(header, "amd64"))
 	// the byte shuffle that keeps the low word of each dword: bytes 0 1 4 5 8 9 12 13, the
 	// rest zeroed (bit 7 set), in each 128-bit lane
@@ -365,7 +374,12 @@ func files() map[string]string {
 	avxWiden(&x, true)
 	avxHB(&x)
 	avxPass4HB(&x)
-	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String(), "hevc/weight_arm64.go": neonWeightGo(), "hevc/vpassu_arm64.go": neonVUGo(), "hevc/hpassb_arm64.go": neonHBGo()}
+	avxAverageB(&x)
+	avxWeightB(&x, false)
+	avxWeightB(&x, true)
+	avxSAOBandB(&x)
+	avxSAOEdgeB(&x)
+	return map[string]string{"hevc/pass_arm64.s": a.b.String(), "hevc/pass_amd64.s": x.b.String(), "hevc/weight_arm64.go": neonWeightGo(), "hevc/vpassu_arm64.go": neonVUGo(), "hevc/hpassb_arm64.go": neonHBGo(), "hevc/weightb_arm64.go": neonWeightBGo()}
 }
 
 var osExit = os.Exit

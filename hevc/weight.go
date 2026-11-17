@@ -18,7 +18,7 @@ const (
 	maxLog2Wd = 13
 )
 
-func checkWeight(dst []uint16, dstOff, dstStride int, ps [][]int32, pOff, pStride, w, h, bitDepth, log2Wd int, scalars ...int32) error {
+func checkWeight[T uint8 | uint16](dst []T, dstOff, dstStride int, ps [][]int32, pOff, pStride, w, h, bitDepth, log2Wd int, scalars ...int32) error {
 	switch {
 	case w < 2 || w > maxBlock || w%2 != 0 || h < 1 || h > maxBlock:
 		return refuse("block %dx%d: the width is even from 2 to %d, the height from 1 to %d", w, h, maxBlock, maxBlock)
@@ -49,7 +49,7 @@ func checkWeight(dst []uint16, dstOff, dstStride int, ps [][]int32, pOff, pStrid
 		if !ok {
 			return refuse("intermediate block does not fit: offset %d stride %d size %dx%d length %d", pOff, pStride, w, h, len(p))
 		}
-		if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 2, unsafe.Pointer(unsafe.SliceData(p)), first, last, 4) {
+		if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, int(unsafe.Sizeof(dst[0])), unsafe.Pointer(unsafe.SliceData(p)), first, last, 4) {
 			return refuse("destination block and intermediates share memory")
 		}
 	}
