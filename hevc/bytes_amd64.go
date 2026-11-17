@@ -81,3 +81,62 @@ func widenBDispatch(dst []int32, dstOff, dstStride int, src []uint8, srcOff, src
 	}
 	widenBAVX2(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, int(shift))
 }
+
+//go:noescape
+func averageBAVX2(dst *uint8, dstStride int, a *uint8, aStride int, b *uint8, bStride, w, h int)
+
+//go:noescape
+func weightUniBAVX2(dst *uint8, dstStride int, p *int32, pStride, w, h int, q *int32, shift int)
+
+//go:noescape
+func weightBiBAVX2(dst *uint8, dstStride int, p *int32, p1 *int32, pStride, w, h int, q *int32, shift int)
+
+//go:noescape
+func saoBandBAVX2(dst *uint8, dstStride int, src *uint8, srcStride, w, h int, p *int16)
+
+//go:noescape
+func saoEdgeBAVX2(dst *uint8, dstStride int, src *uint8, srcStride, w, h, offA, offB int, p *int16)
+
+func averageBDispatch(dst []uint8, dstOff, dstStride int, a []uint8, aOff, aStride int, b []uint8, bOff, bStride, w, h int) {
+	if !useAVX2 {
+		averageRef(dst, dstOff, dstStride, a, aOff, aStride, b, bOff, bStride, w, h)
+		return
+	}
+	averageBAVX2(&dst[dstOff], dstStride, &a[aOff], aStride, &b[bOff], bStride, w, h)
+}
+
+func weightUniBDispatch(dst []uint8, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	if !useAVX2 {
+		weightUniRef(dst, dstOff, dstStride, p, pOff, pStride, w, h, log2Wd, q)
+		return
+	}
+	weightUniBAVX2(&dst[dstOff], dstStride, &p[pOff], pStride, w, h, &q[0], int(log2Wd))
+}
+
+func weightBiBDispatch(dst []uint8, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+	if !useAVX2 {
+		weightBiRef(dst, dstOff, dstStride, p0, p1, pOff, pStride, w, h, log2Wd, q)
+		return
+	}
+	weightBiBAVX2(&dst[dstOff], dstStride, &p0[pOff], &p1[pOff], pStride, w, h, &q[0], int(log2Wd+1))
+}
+
+func saoBandBDispatch(dst []uint8, dstOff, dstStride int, src []uint8, srcOff, srcStride, w, h int, p *[12]int16) {
+	if !useAVX2 {
+		var off [4]int16
+		copy(off[:], p[:4])
+		saoBandRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 8, int(p[4]), &off)
+		return
+	}
+	saoBandBAVX2(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, &p[0])
+}
+
+func saoEdgeBDispatch(dst []uint8, dstOff, dstStride int, src []uint8, srcOff, srcStride, w, h, offA, offB int, p *[12]int16) {
+	if !useAVX2 {
+		var off [4]int16
+		copy(off[:], p[:4])
+		saoEdgeRef(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, 8, offA, offB, &off)
+		return
+	}
+	saoEdgeBAVX2(&dst[dstOff], dstStride, &src[srcOff], srcStride, w, h, offA, offB, &p[0])
+}

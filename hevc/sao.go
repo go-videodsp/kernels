@@ -32,7 +32,7 @@ func saoMargins(class int) (rows, cols int) {
 	return vPos[class], hPos[class]
 }
 
-func checkSAO(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth int, off *[4]int16, rows, cols int) error {
+func checkSAO[T uint8 | uint16](dst []T, dstOff, dstStride int, src []T, srcOff, srcStride, w, h, bitDepth int, off *[4]int16, rows, cols int) error {
 	switch {
 	case w < 1 || w > maxBlock || h < 1 || h > maxBlock:
 		return refuse("block %dx%d is not from 1x1 to %dx%d", w, h, maxBlock, maxBlock)
@@ -58,7 +58,7 @@ func checkSAO(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStri
 	if !ok {
 		return refuse("source footprint does not fit: offset %d stride %d size %dx%d length %d", srcOff, srcStride, w, h, len(src))
 	}
-	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 2, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, 2) {
+	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, int(unsafe.Sizeof(dst[0])), unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, int(unsafe.Sizeof(src[0]))) {
 		return refuse("destination block and source footprint share memory")
 	}
 	return nil

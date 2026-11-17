@@ -11,7 +11,7 @@ import (
 // blocks at full-sample positions, where the intermediate samples are the reference
 // samples shifted left, so the result is the average of the samples and needs no clipping.
 
-func checkAverage(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) error {
+func checkAverage[T uint8 | uint16](dst []T, dstOff, dstStride int, a []T, aOff, aStride int, b []T, bOff, bStride, w, h int) error {
 	switch {
 	case w < 2 || w > maxBlock || w%2 != 0 || h < 1 || h > maxBlock:
 		return refuse("block %dx%d: the width is even from 2 to %d, the height from 1 to %d", w, h, maxBlock, maxBlock)
@@ -23,14 +23,14 @@ func checkAverage(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride
 		return refuse("destination block does not fit: offset %d stride %d size %dx%d length %d", dstOff, dstStride, w, h, len(dst))
 	}
 	for _, s := range [2]struct {
-		p       []uint16
+		p       []T
 		off, st int
 	}{{a, aOff, aStride}, {b, bOff, bStride}} {
 		first, last, ok := bounds.Window(len(s.p), s.off, s.st, 0, h-1, 0, w-1)
 		if !ok {
 			return refuse("source block does not fit: offset %d stride %d size %dx%d length %d", s.off, s.st, w, h, len(s.p))
 		}
-		if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 2, unsafe.Pointer(unsafe.SliceData(s.p)), first, last, 2) {
+		if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, int(unsafe.Sizeof(dst[0])), unsafe.Pointer(unsafe.SliceData(s.p)), first, last, int(unsafe.Sizeof(dst[0]))) {
 			return refuse("destination block and source block share memory")
 		}
 	}

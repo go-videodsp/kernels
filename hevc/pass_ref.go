@@ -111,7 +111,7 @@ func widenRef[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, src
 func clip16(v, hi int) int { return min(max(v, 0), hi) }
 
 // saoBandRef is the band offset of the text, one sample at a time.
-func saoBandRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth, bandPos int, off *[4]int16) {
+func saoBandRef[T uint8 | uint16](dst []T, dstOff, dstStride int, src []T, srcOff, srcStride, w, h, bitDepth, bandPos int, off *[4]int16) {
 	hi := 1<<uint(bitDepth) - 1
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
@@ -122,7 +122,7 @@ func saoBandRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcSt
 					d = int(off[k])
 				}
 			}
-			dst[dstOff+y*dstStride+x] = uint16(clip16(cur+d, hi))
+			dst[dstOff+y*dstStride+x] = T(clip16(cur+d, hi))
 		}
 	}
 }
@@ -139,7 +139,7 @@ func sign16(v int) int {
 
 // saoEdgeRef is the edge offset of the text: offA and offB are the element offsets of the
 // two neighbours.
-func saoEdgeRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth, offA, offB int, off *[4]int16) {
+func saoEdgeRef[T uint8 | uint16](dst []T, dstOff, dstStride int, src []T, srcOff, srcStride, w, h, bitDepth, offA, offB int, off *[4]int16) {
 	hi := 1<<uint(bitDepth) - 1
 	delta := [5]int{int(off[0]), int(off[1]), 0, int(off[2]), int(off[3])}
 	for y := 0; y < h; y++ {
@@ -147,7 +147,7 @@ func saoEdgeRef(dst []uint16, dstOff, dstStride int, src []uint16, srcOff, srcSt
 			i := srcOff + y*srcStride + x
 			cur := int(src[i])
 			e := sign16(cur-int(src[i+offA])) + sign16(cur-int(src[i+offB]))
-			dst[dstOff+y*dstStride+x] = uint16(clip16(cur+delta[e+2], hi))
+			dst[dstOff+y*dstStride+x] = T(clip16(cur+delta[e+2], hi))
 		}
 	}
 }
@@ -176,30 +176,30 @@ func idctRef(dst, d, g, mat []int32, matStride, n, maxX, maxY int, shift uint) {
 }
 
 // averageRef is (a + b + 1) >> 1 of the text.
-func averageRef(dst []uint16, dstOff, dstStride int, a []uint16, aOff, aStride int, b []uint16, bOff, bStride, w, h int) {
+func averageRef[T uint8 | uint16](dst []T, dstOff, dstStride int, a []T, aOff, aStride int, b []T, bOff, bStride, w, h int) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			dst[dstOff+y*dstStride+x] = uint16((uint32(a[aOff+y*aStride+x]) + uint32(b[bOff+y*bStride+x]) + 1) >> 1)
+			dst[dstOff+y*dstStride+x] = T((uint32(a[aOff+y*aStride+x]) + uint32(b[bOff+y*bStride+x]) + 1) >> 1)
 		}
 	}
 }
 
 // weightUniRef and weightBiRef are the weighted prediction of the text in 32-bit arithmetic.
-func weightUniRef(dst []uint16, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+func weightUniRef[T uint8 | uint16](dst []T, dstOff, dstStride int, p []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			v := ((p[pOff+y*pStride+x]*q[0] + q[1]) >> log2Wd) + q[2]
-			dst[dstOff+y*dstStride+x] = uint16(min(max(v, 0), q[3]))
+			dst[dstOff+y*dstStride+x] = T(min(max(v, 0), q[3]))
 		}
 	}
 }
 
-func weightBiRef(dst []uint16, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
+func weightBiRef[T uint8 | uint16](dst []T, dstOff, dstStride int, p0, p1 []int32, pOff, pStride, w, h int, log2Wd uint, q *[4]int32) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			i := pOff + y*pStride + x
 			v := (p0[i]*q[0] + p1[i]*q[1] + q[2]) >> (log2Wd + 1)
-			dst[dstOff+y*dstStride+x] = uint16(min(max(v, 0), q[3]))
+			dst[dstOff+y*dstStride+x] = T(min(max(v, 0), q[3]))
 		}
 	}
 }
