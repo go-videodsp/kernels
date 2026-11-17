@@ -4,7 +4,7 @@ package hevc
 // one sample at a time. They are the oracle of the kernels and the path of every
 // target without one.
 
-func hpassRef(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+func hpassRef[S uint8 | uint16](dst []int16, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			var s int32
@@ -28,7 +28,7 @@ func vpassRef(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStride
 	}
 }
 
-func hpass4Ref(dst []int16, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+func hpass4Ref[S uint8 | uint16](dst []int16, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			var s int32
@@ -52,7 +52,7 @@ func vpass4Ref(dst []int32, dstOff, dstStride int, src []int16, srcOff, srcStrid
 	}
 }
 
-func vpassU8Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+func vpassU8Ref[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			var s int32
@@ -64,7 +64,7 @@ func vpassU8Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStr
 	}
 }
 
-func vpassU4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+func vpassU4Ref[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			var s int32
@@ -76,7 +76,7 @@ func vpassU4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStr
 	}
 }
 
-func hpassW8Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
+func hpassW8Ref[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint, c *[8]int16) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			var s int32
@@ -88,7 +88,7 @@ func hpassW8Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStr
 	}
 }
 
-func hpassW4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
+func hpassW4Ref[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint, c *[4]int16) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			var s int32
@@ -100,7 +100,7 @@ func hpassW4Ref(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStr
 	}
 }
 
-func widenRef(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h int, shift uint) {
+func widenRef[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h int, shift uint) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst[dstOff+y*dstStride+x] = int32(src[srcOff+y*srcStride+x]) << shift

@@ -12,7 +12,7 @@ import (
 // shift1 = bitDepth - 8): the one-dimensional filter of a block that has no horizontal
 // fraction, which has no first pass and so reads the samples themselves.
 
-func checkVU(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth, unit, bef, aft int, haveC bool) error {
+func checkVU[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h, bitDepth, unit, bef, aft int, haveC bool) error {
 	if err := checkGeometry(dstStride, srcStride, w, h, unit, haveC); err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func checkVU(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride
 	if !ok {
 		return refuse("source footprint does not fit: offset %d stride %d size %dx%d length %d", srcOff, srcStride, w, h, len(src))
 	}
-	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 4, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, 2) {
+	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 4, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, int(unsafe.Sizeof(src[0]))) {
 		return refuse("destination block and source footprint share memory")
 	}
 	return nil
@@ -78,7 +78,7 @@ func TryVPassU4(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStr
 // pass of the two-dimensional filter into int16 (HPass8) and the widening of its result to int32
 // that the one-dimensional case needs are one call.
 
-func checkHW(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride, w, h, bitDepth, unit, bef, aft int, haveC bool) error {
+func checkHW[S uint8 | uint16](dst []int32, dstOff, dstStride int, src []S, srcOff, srcStride, w, h, bitDepth, unit, bef, aft int, haveC bool) error {
 	if err := checkGeometry(dstStride, srcStride, w, h, unit, haveC); err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func checkHW(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStride
 	if !ok {
 		return refuse("source footprint does not fit: offset %d stride %d size %dx%d length %d", srcOff, srcStride, w, h, len(src))
 	}
-	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 4, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, 2) {
+	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 4, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, int(unsafe.Sizeof(src[0]))) {
 		return refuse("destination block and source footprint share memory")
 	}
 	return nil
@@ -168,7 +168,7 @@ func TryWiden(dst []int32, dstOff, dstStride int, src []uint16, srcOff, srcStrid
 	if !ok {
 		return refuse("source block does not fit: offset %d stride %d size %dx%d length %d", srcOff, srcStride, w, h, len(src))
 	}
-	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 4, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, 2) {
+	if overlaps(unsafe.Pointer(unsafe.SliceData(dst)), dstOff, dLast, 4, unsafe.Pointer(unsafe.SliceData(src)), sFirst, sLast, int(unsafe.Sizeof(src[0]))) {
 		return refuse("destination block and source block share memory")
 	}
 	widenDispatch(dst, dstOff, dstStride, src, srcOff, srcStride, w, h, uint(shift))
