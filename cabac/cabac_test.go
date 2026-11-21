@@ -221,7 +221,17 @@ func TestNewScanRefusesWhatWouldLeaveTheContextArray(t *testing.T) {
 		{"top level context at 1024", ok, ok, 1024 - 9, 4, true},
 	}
 	for _, c := range cases {
-		_, err := NewScan(c.sig, c.last, c.base, c.lim)
+		// a refusal must be an error, not an index panic further down
+		var err error
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("%s: NewScan panicked instead of refusing: %v", c.name, r)
+					err = errScan
+				}
+			}()
+			_, err = NewScan(c.sig, c.last, c.base, c.lim)
+		}()
 		if (err != nil) != c.wantRefuse {
 			t.Errorf("%s: err = %v, refuse = %v", c.name, err, c.wantRefuse)
 		}
