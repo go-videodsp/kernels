@@ -31,7 +31,7 @@ var tabs = engineTables{
 }
 
 func init() {
-	for s := 0; s < 256; s++ {
+	for s := range tabs.nextMPS { // every context byte, 0..255
 		state, mps := (s>>1)&63, s&1
 		tabs.lps[s] = rangeTabLPS[state]
 		tabs.nextMPS[s] = transIdxMPS[state]<<1 | uint8(mps)
