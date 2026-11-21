@@ -3,7 +3,6 @@ package lf
 import (
 	"bytes"
 	"math"
-	"math/rand"
 	"testing"
 )
 
@@ -26,8 +25,27 @@ func didPanic(f func()) (p bool) {
 
 const padN = 96
 
+// cheapRand is a xorshift generator: the sweeps below build tens of thousands
+// of buffers, and math/rand's source costs more to seed than the call it feeds
+// (the sweeps run under emulation on the architecture lanes).
+type cheapRand uint64
+
+func newCheap(seed int64) *cheapRand {
+	r := cheapRand(uint64(seed)*0x9E3779B97F4A7C15 + 0x2545F4914F6CDD1D)
+	return &r
+}
+
+func (r *cheapRand) Intn(n int) int {
+	x := uint64(*r)
+	x ^= x << 13
+	x ^= x >> 7
+	x ^= x << 17
+	*r = cheapRand(x)
+	return int((x >> 11) % uint64(n))
+}
+
 // smooth fills b with values close enough for every filter to act.
-func smoothFill(rng *rand.Rand, b []byte) {
+func smoothFill(rng *cheapRand, b []byte) {
 	for i := range b {
 		b[i] = byte(100 + rng.Intn(6))
 	}
@@ -35,7 +53,7 @@ func smoothFill(rng *rand.Rand, b []byte) {
 
 // guarded returns a backing array of n+2*guard bytes and the n bytes between
 // the guards, with the capacity cut so an append cannot reach a guard.
-func padBuf(rng *rand.Rand, n int) (back, mid []byte) {
+func padBuf(rng *cheapRand, n int) (back, mid []byte) {
 	back = make([]byte, n+2*padN)
 	smoothFill(rng, back)
 	return back, back[padN : padN+n : padN+n]
@@ -70,8 +88,8 @@ var edgeOps = []edgeOp{
 // Plane and through the plain function, and reports whether it was accepted.
 func checkEdgeOp(t *testing.T, op edgeOp, n, stride, off, ia, ib int, bS [4]uint8, seed int64) bool {
 	t.Helper()
-	backA, midA := padBuf(rand.New(rand.NewSource(seed)), n)
-	backB, midB := padBuf(rand.New(rand.NewSource(seed)), n)
+	backA, midA := padBuf(newCheap(seed), n)
+	backB, midB := padBuf(newCheap(seed), n)
 	p, err := NewPlane(midA, stride)
 	if err != nil {
 		t.Fatalf("NewPlane(n=%d, stride=%d): %v", n, stride, err)
@@ -94,7 +112,7 @@ func TestPlaneEqualsPlainEverywhere(t *testing.T) {
 			for _, op := range edgeOps {
 				accepted, refused := 0, 0
 				for off := -(5*stride + 24); off <= n+5*stride+24; off++ {
-					rng := rand.New(rand.NewSource(int64(off)*7 + int64(stride)))
+					rng := newCheap(int64(off)*7 + int64(stride))
 					bS := [4]uint8{uint8(rng.Intn(4)), uint8(rng.Intn(4)), uint8(rng.Intn(4)), 3}
 					if checkEdgeOp(t, op, n, stride, off, 20+rng.Intn(32), 20+rng.Intn(32), bS, int64(off)) {
 						accepted++
@@ -117,7 +135,7 @@ func TestPlaneEqualsPlainEverywhere(t *testing.T) {
 func TestPlaneRefusesExtremeOffsets(t *testing.T) {
 	const n, stride = 16 * 24, 16
 	for _, op := range edgeOps {
-		for _, off := range []int{math.MinInt, math.MinInt + 1, math.MaxInt, math.MaxInt - 1, -1 << 62, 1 << 62, math.MinInt + 4, -n, 2 * n} {
+		for _, off := range []int{math.MinInt, math.MinInt + 1, math.MaxInt, math.MaxInt - 1, math.MinInt / 2, math.MaxInt/2 + 1, math.MinInt + 4, -n, 2 * n} {
 			if checkEdgeOp(t, op, n, stride, off, 30, 30, [4]uint8{1, 1, 1, 1}, 1) {
 				t.Errorf("%s accepted offset %d", op.name, off)
 			}
@@ -126,7 +144,7 @@ func TestPlaneRefusesExtremeOffsets(t *testing.T) {
 }
 
 func TestPlaneIndexesAndStrengthsStillRefused(t *testing.T) {
-	back, mid := padBuf(rand.New(rand.NewSource(1)), 16*24)
+	back, mid := padBuf(newCheap(1), 16*24)
 	p, err := NewPlane(mid, 16)
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +214,7 @@ func TestNewPlaneRefusals(t *testing.T) {
 		{"stride -16", pix, -16, 100, false},
 		{"stride equals the length", pix, 100, 100, true},
 		{"stride beyond the length", pix, 101, 100, false},
-		{"stride 1<<62", pix, 1 << 62, 100, false},
+		{"stride half of int", pix, math.MaxInt/2 + 1, 100, false},
 		{"length at the cap", pix, 16, 100, true},
 		{"length over the cap", pix, 16, 99, false},
 		{"empty", nil, 16, 100, false},
@@ -239,18 +257,18 @@ func TestPlanePairEqualsPlainEverywhere(t *testing.T) {
 		n := stride * 14
 		for _, op := range ops {
 			accepted := 0
-			offs := []int{math.MinInt, math.MaxInt, -1 << 62, 1 << 62}
+			offs := []int{math.MinInt, math.MaxInt, math.MinInt / 2, math.MaxInt/2 + 1}
 			for off := -(4*stride + 16); off <= n+4*stride+16; off++ {
 				offs = append(offs, off)
 			}
 			for _, off := range offs {
-				rng := rand.New(rand.NewSource(int64(off)))
+				rng := newCheap(int64(off))
 				ia, ib, ja, jb := 20+rng.Intn(32), 20+rng.Intn(32), 20+rng.Intn(32), 20+rng.Intn(32)
 				bS := [4]uint8{uint8(rng.Intn(4)), 3, uint8(rng.Intn(4)), 0}
-				ba, ma := padBuf(rand.New(rand.NewSource(int64(off)+1)), n)
-				bb, mb := padBuf(rand.New(rand.NewSource(int64(off)+2)), n)
-				ca, na := padBuf(rand.New(rand.NewSource(int64(off)+1)), n)
-				cb, nb := padBuf(rand.New(rand.NewSource(int64(off)+2)), n)
+				ba, ma := padBuf(newCheap(int64(off)+1), n)
+				bb, mb := padBuf(newCheap(int64(off)+2), n)
+				ca, na := padBuf(newCheap(int64(off)+1), n)
+				cb, nb := padBuf(newCheap(int64(off)+2), n)
 				q, err := NewPlanePair(ma, mb, stride)
 				if err != nil {
 					t.Fatal(err)
@@ -301,8 +319,8 @@ func TestNewPlanePairRefusals(t *testing.T) {
 	if _, err := NewPlanePair(arr[:n], arr[n:2*n], 17); err != nil {
 		t.Errorf("stride 17: %v", err)
 	}
-	if _, err := NewPlanePair(arr[:n], arr[n:n+n], 1<<62); err == nil {
-		t.Error("stride 1<<62 was accepted")
+	if _, err := NewPlanePair(arr[:n], arr[n:n+n], math.MaxInt/2+1); err == nil {
+		t.Error("a stride of half the int range was accepted")
 	}
 }
 

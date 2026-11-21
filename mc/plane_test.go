@@ -3,7 +3,6 @@ package mc
 import (
 	"bytes"
 	"math"
-	"math/rand"
 	"testing"
 )
 
@@ -41,10 +40,15 @@ func planeMustNotPanic(t *testing.T, call any, f func()) {
 }
 
 func planeBuf(seed int64, n int) (back, mid []byte) {
-	rng := rand.New(rand.NewSource(seed))
+	// xorshift, not math/rand: the sweeps build tens of thousands of buffers
+	// and math/rand's source costs more to seed than the call it feeds.
+	x := uint64(seed)*0x9E3779B97F4A7C15 + 0x2545F4914F6CDD1D
 	back = make([]byte, n+2*planePadN)
 	for i := range back {
-		back[i] = byte(rng.Intn(256))
+		x ^= x << 13
+		x ^= x >> 7
+		x ^= x << 17
+		back[i] = byte(x >> 24)
 	}
 	return back, back[planePadN : planePadN+n : planePadN+n]
 }
@@ -60,7 +64,7 @@ func sweepOffsets(n, stride int) []int {
 	for _, mv := range []int{512, 2048, 1 << 20} {
 		offs = append(offs, -mv*stride, mv*stride, -mv*stride-mv, n+mv*stride+mv)
 	}
-	return append(offs, math.MinInt, math.MinInt+1, math.MaxInt, math.MaxInt-1, -1<<62, 1<<62)
+	return append(offs, math.MinInt, math.MinInt+1, math.MaxInt, math.MaxInt-1, math.MinInt/2, math.MaxInt/2+1)
 }
 
 type lumaCall struct {
@@ -351,7 +355,7 @@ func TestNewPlaneRefusals(t *testing.T) {
 		{"stride -16", pix, -16, 100, false},
 		{"stride equals the length", pix, 100, 100, true},
 		{"stride beyond the length", pix, 101, 100, false},
-		{"stride 1<<62", pix, 1 << 62, 100, false},
+		{"stride half of int", pix, math.MaxInt/2 + 1, 100, false},
 		{"length at the cap", pix, 16, 100, true},
 		{"length over the cap", pix, 16, 99, false},
 		{"empty", nil, 16, 100, false},
